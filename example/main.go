@@ -2,117 +2,64 @@ package main
 
 import (
 	"fmt"
-	"github.com/goiot/libmqtt"
-	"log"
-	"time"
+	//import the Paho Go MQTT library
+	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"os"
 )
 
-func main()  {
-	fmt.Println()
-	client, err := libmqtt.NewClient(
-		// try MQTT 5.0 and fallback to MQTT 3.1.1
-		libmqtt.WithVersion(libmqtt.V5, true),
-		// server address(es) tcp://iot.eclipse.org:1883 ws://192.168.113.7:8083/mqtt
-		libmqtt.WithServer("192.168.113.6:1883"),
-		// enable keepalive (10s interval) with 20% tolerance
-		libmqtt.WithKeepalive(10, 1.2),
-		// enable auto reconnect and set backoff strategy
-		libmqtt.WithAutoReconnect(true),
-		libmqtt.WithBackoffStrategy(time.Second, 5*time.Second, 1.2),
-		// use RegexRouter for topic routing if not specified
-		// will use TextRouter, which will match full text
-		libmqtt.WithRouter(libmqtt.NewRegexRouter()),
-	)
-
-	if err != nil {
-		// handle client creation error
-		panic("hmm, how could it failed")
+//define a function for the default message handler
+var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
+	fmt.Printf("TOPIC: %s\n", msg.Topic())
+	fmt.Printf("MSG: %s\n", msg.Payload())
+	// 手工撸路由
+	switch msg.Topic() {
+	case "smartServer/transaction/":  // 用户应该触发不了这个级别的topic
+		fmt.Println("提交chain事务,weClient 1")
+		// todo 组装事务参数
+		token := client.Publish("smartServer/transaction/1/rep", 0, false, "")
+		token.Wait()
+	default:
+		fmt.Println("undefined topic")
 	}
 
-	// register handlers
-	{
-		// register net handler
-		client.HandleNet(func(server string, err error) {
-			if err != nil {
-				log.Printf("error happened to connection to server [%v]: %v", server, err)
-			}
-		})
-		// register persist handler, you don't need this if all your message had QoS 0
-		client.HandlePersist(func(err error) {
-			if err != nil {
-				log.Printf("session persist error: %v", err)
-			}
-		})
-		// register subscribe handler
-		client.HandleSub(func(topics []*libmqtt.Topic, err error) {
-			if err != nil {
-				for _, t := range topics {
-					log.Printf("subscribe to topic [%v] failed: %v", t.Name, err)
-				}
-			} else {
-				for _, t := range topics {
-					log.Printf("subscribe to topic [%v] success: %v", t.Name, err)
-				}
+}
 
-				// publish some packet (just for example)
-				client.Publish([]*libmqtt.PublishPacket{
-					{TopicName: "foo", Payload: []byte("bar"), Qos: libmqtt.Qos0},
-					{TopicName: "bar", Payload: []byte("foo"), Qos: libmqtt.Qos1},
-				}...)
-			}
-		})
-		// register unsubscribe handler
-		client.HandleUnSub(func(topic []string, err error) {
-			if err != nil {
-				// handle unsubscribe failure
-				for _, t := range topic {
-					log.Printf("unsubscribe to topic [%v] failed: %v", t, err)
-				}
-			} else {
-				for _, t := range topic {
-					log.Printf("unsubscribe to topic [%v] failed: %v", t, err)
-				}
-			}
-		})
-		// register publish handler
-		client.HandlePub(func(topic string, err error) {
-			if err != nil {
-				log.Printf("publish packet to topic [%v] failed: %v", topic, err)
-			} else {
-				log.Printf("publish packet to topic [%v] success: %v", topic, err)
-			}
-		})
+func main() {
+	//create a ClientOptions struct setting the broker address, clientid, turn
+	//off trace output and set the default message handler
+	opts := MQTT.NewClientOptions().AddBroker("tcp://192.168.18.128:1883")
+	opts.SetClientID("smartServer")
+	opts.SetDefaultPublishHandler(f)
 
-		// handle every subscribed message (just for example)
-		client.Handle(".*", func(topic string, qos libmqtt.QosLevel, msg []byte) {
-			log.Printf("[%v] message: %v", topic, string(msg))
-		})
+	//create and start a client using the above ClientOptions
+	c := MQTT.NewClient(opts)
+	if token := c.Connect(); token.Wait() && token.Error() != nil {
+		panic(token.Error())
 	}
 
-	// connect to server
-	client.Connect(func(server string, code byte, err error) {
-		if err != nil {
-			log.Printf("connect to server [%v] failed: %v", server, err)
-			return
-		}
+	//subscribe to the topic /go-mqtt/sample and request messages to be delivered
+	//at a maximum qos of zero, wait for the receipt to confirm the subscription
+	if token := c.Subscribe("smartServer/transaction/", 0, nil); token.Wait() && token.Error() != nil {
+		fmt.Println(token.Error())
+		os.Exit(1)
+	}
 
-		if code != libmqtt.CodeSuccess {
-			log.Printf("connect to server [%v] failed with server code [%v]", server, code)
-			return
-		}
-
-		// connected
-		go func() {
-			// subscribe to some topics
-			client.Subscribe([]*libmqtt.Topic{
-				{Name: "foo", Qos: libmqtt.Qos0},
-				{Name: "bar", Qos: libmqtt.Qos1},
-			}...)
-
-			// in this example, we publish packets right after subscribe succeeded
-			// see `client.HandleSub`
-		}()
-	})
-
-	client.Wait()
+	//Publish 5 messages to /go-mqtt/sample at qos 1 and wait for the receipt
+	//from the server after sending each message
+	//for i := 0; i < 500; i++ {
+	//	text := fmt.Sprintf("this is msg #%d!", i)
+	//	token := c.Publish("go-mqtt/sample", 0, false, text)
+	//	token.Wait()
+	//	time.Sleep(3 * time.Second)
+	//}
+	//
+	//time.Sleep(3 * time.Second)
+	//
+	////unsubscribe from /go-mqtt/sample
+	//if token := c.Unsubscribe("go-mqtt/sample"); token.Wait() && token.Error() != nil {
+	//	fmt.Println(token.Error())
+	//	os.Exit(1)
+	//}
+	//
+	//c.Disconnect(250)
 }
