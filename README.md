@@ -126,7 +126,7 @@ postServer done
    info{
        账单|租用
     }
-    ns:ns:public_key+asset_type+id
+    ns:public_key+asset_type+id
  }
  
  balance_info{
@@ -169,11 +169,15 @@ postServer done
  # 查询余额
  当前端查看余额时，本用例开始执行；
  ## 基本流
- 1. 前端获取 sn：用户昵称+公钥+钱包编号 提交到ss（smartServer）；
+ 1. 前端获取 sn：公钥+type+钱包编号 提交到ss（smartServer）；
  2. ss 查询余额，余额资产中按sn查询资产交易&未消耗的outputs，余额结果返回。
  ## 可选流
  1. 新用户，无余额资产，管理员创建该用户的余额资产，初始化为0，重新查询。
  2. 余额分散，使用该用户账号合并余额资产，重新查询。
+ 
+ # 创建余额资产
+ 由管理员端，根据用户信息，创建余额资产。
+
  
  # 充值/提现
  当用户充值/提现的时候，本用用例开始执行
@@ -216,8 +220,16 @@ postServer done
  2. 设备状态判断不通过，提示原因，用例结束；
  
  # 查看单设备信息
- 根据扫码的设备sn，查询设备信息，和设备状态。
+ 根据扫码的设备sn，查询设备信息，transfer&output设备状态。
  
  15点25分
  
  头疼，实现 todo
+ 突然不想用go做server了，不过，这个时候换不合适。就这样吧。
+ 
+坑就是， 通过tranfer只通过 asset_id,这样会查出来 余额的所有交易
+output通过 public_key+spent查某人的的可用余额和设备的transfer都会出来；
+
+所以要 某人的代币 使用 未使用的tranferid遍历transfer，然后通过asset_id,过滤。
+
+21点53分 明天测试 创建0代币 todo

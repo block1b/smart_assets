@@ -1,5 +1,16 @@
 package tool
 
+type NickForm struct {
+	NiceName string `json:"nice_name"`
+	Sn
+}
+// 资产唯一标识
+type Sn struct {
+	PublicKey string `json:"public_key"`
+	Type string `json:"type"`  // [balance|iot]
+	Id string `json:"id"`
+}
+
 // 自定义结构体，资产信息和元数据
 type Info interface {
 }
@@ -51,7 +62,7 @@ type Data struct {
 }
 
 type Asset struct {
-	Id string             `json:"id"`
+	Id string             `json:"id, omitempty"`  // asset_id
 	Data Data             `json:"data, omitempty"`
 }
 
@@ -99,11 +110,31 @@ type GetOutputResult struct {
 }
 
 type GetAssetResult struct {
-	Data Data `json:"data"`
-	Id string `json:"id"`  // AssetId
+	Asset
 }
 
 type GetMetadataResult struct {
 	Metadata Data `json:"metadata"`
 	Id string `json:"id"`  // TransactionID
+}
+
+// 用于传输的Transfer prepare数据结构
+//"operation":"TRANSFER",
+//"asset":{"id":"123456"},
+//"inputs":[{"input":"input_msg"}],
+//"recipients": [[["public_key1"],2],[["public_key2",6]]],
+//"private_keys": ["p1","p2"]
+type TransferPrepare struct {
+	Operation string `json:"operation"`
+	Asset Asset      `json:"asset, omitempty"`
+	Inputs []Input   `json:"inputs, omitempty"`
+	Recipients []interface{} `json:"recipients"`
+	PrivateKeys []string `json:"private_keys"`
+	Metadata Data `json:"metadata"`
+}
+
+//[["public_key1"],2]
+type Recipient struct {
+	PublicKey string
+	Count int
 }
