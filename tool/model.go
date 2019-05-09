@@ -1,7 +1,53 @@
 package tool
 
 // 自定义结构体，资产信息和元数据
-type Data interface {
+type Info interface {
+}
+
+// 余额资产信息
+type BalanceInfo struct {
+	OwnerNickName string  `json:"owner_nick_name"`
+	OwnerPublicKey string `json:"owner_public_key"`
+	Type string           `json:"type"`  // default：balance
+	Id string             `json:"id"`    // 钱包编号
+}
+
+// 设备资产信息
+type IotInfo struct {
+	OwnerNickName string  `json:"owner_nick_name"`
+	OwnerPublicKey string `json:"owner_public_key"`
+	Type string           `json:"type"`  // default：iot
+	Id string             `json:"id"`    // 设备编号
+	DeviceName string     `json:"device_name"`  // 设备名
+	DeviceInfo string     `json:"device_info"`  // 设备描述
+}
+
+// 转账记录
+type BillInfo struct {
+	SignerNickName string       `json:"signer_nick_name"`  // 发起人
+	SignerPublicKey string      `json:"signer_public_key"`
+	RecipientNickName string    `json:"recipient_nick_name"`  // 收款人
+	RecipientPublicKey string   `json:"recipient_public_key"`
+	Reason string               `json:"reason"`  // 支付原因
+	Cost string                 `json:"cost"`  // 支付金额
+	Time string                 `json:"time"`  // 支付时间
+}
+
+// 租用记录
+type RentInfo struct {
+	DeviceId string `json:"device_id"`  // 设备号
+	OwnerNickName string  `json:"owner_nick_name"`
+	OwnerPublicKey string `json:"owner_public_key"`
+	UserNickName string `json:"user_nick_name"`
+	UserPublicKey string `json:"user_public_key"`
+	Status string `json:"status"`  // 设备状态
+	StartTime string `json:"start_time"` // 开始租用时间
+	CostTime string `json:"cost_time"`  // 租用时间
+}
+
+type Data struct {
+	Info Info          `json:"info"`
+	Sn string          `json:"sn"`  // asset,metadata的唯一标识 public_key+type+id
 }
 
 type Asset struct {
@@ -28,7 +74,7 @@ type Input struct {
 
 type Fulfills struct {
 	TransactionId string  `json:"transaction_id"`
-	outputIndex int       `json:"output_index"`
+	OutputIndex int       `json:"output_index"`
 }
 
 type Output struct {
