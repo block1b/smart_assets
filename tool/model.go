@@ -1,9 +1,5 @@
 package tool
 
-type NickForm struct {
-	NiceName string `json:"nice_name"`
-	Sn
-}
 // 资产唯一标识
 type Sn struct {
 	PublicKey string `json:"public_key"`
@@ -52,6 +48,7 @@ type RentInfo struct {
 	UserNickName string `json:"user_nick_name"`
 	UserPublicKey string `json:"user_public_key"`
 	Status string `json:"status"`  // 设备状态
+	Ruler string `json:"ruler"`  // 收费规则
 	StartTime string `json:"start_time"` // 开始租用时间
 	CostTime string `json:"cost_time"`  // 租用时间
 }
@@ -80,7 +77,7 @@ type Transaction struct {
 type Input struct {
 	OwnersBefore []string `json:"owners_before"`
 	Fulfills Fulfills     `json:"fulfills"`
-	Fulfillment string    `json:"fulfillment"`
+	Fulfillment Details    `json:"fulfillment"`
 }
 
 type Fulfills struct {
@@ -105,8 +102,7 @@ type Details struct {
 }
 
 type GetOutputResult struct {
-	TransactionId string `json:"transaction_id"`
-	OutputIndex int `json:"output_index"`
+	Fulfills
 }
 
 type GetAssetResult struct {

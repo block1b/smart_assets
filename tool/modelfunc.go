@@ -14,7 +14,7 @@ func (self *Sn) String() string {
 	return fmt.Sprintf("%v.%v.%v", self.PublicKey, self.Type, self.Id)
 }
 
-func (self *Recipient) ToList() []interface{} {
+func (self Recipient) ToList() []interface{} {
 	key := []string{self.PublicKey}
 	result := []interface{}{key, self.Count}
 	return result

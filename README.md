@@ -183,6 +183,7 @@ postServer done
  当用户充值/提现的时候，本用用例开始执行
  ## 基本流
  1. 前端获取 sn，cost_type, money 提交到ss；
+ 1. 查unspent output
  2. 充值，管理员向该用户转移代币
  3. 提现，用户向管理员转移代币
  4. 查询余额
@@ -232,4 +233,49 @@ output通过 public_key+spent查某人的的可用余额和设备的transfer都�
 
 所以要 某人的代币 使用 未使用的tranferid遍历transfer，然后通过asset_id,过滤。
 
-21点53分 明天测试 创建0代币 todo
+21点53分 明天测试 创建0代币 
+
+不能 needs to be greater than zero
+
+2019年5月10日10点03分
+
+merge done
+
+mqtt client 果然还是应该独立初始化
+
+10点29分 done
+
+资产查询的资产类型识别待添加。
+
+设备状体变化，使用有限状态机FSM
+
+State:
+空闲，使用中，禁用
+Event:
+租用，归还，禁用
+Handler:
+
+状态机少一个出错处理，操作名字定的也不好。
+17点31分
+done 优雅
+
+时间格式化 todo 年月日时分秒
+21点09分 done
+
+// todo 学习mqtt clien api
+// SubscribeMultiple(filters map[string]byte, callback MessageHandler) Token
+// AddRoute(topic string, callback MessageHandler)
+
+addRouter 好理解，直接为某个topic注册处理函数
+
+SubscribeMultiple 
+
+SubscribeMultiple starts a new subscription for multiple topics.
+Provide a MessageHandler to be executed 
+when a message is published on one of the topics provided.
+
+这个应该是批量订阅
+
+还是没有发布订阅模式
+实现之
+ 
