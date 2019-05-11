@@ -278,4 +278,41 @@ when a message is published on one of the topics provided.
 
 还是没有发布订阅模式
 实现之
- 
+
+2019年5月11日13点32分
+
+用户查看账单，就是所有的转账记录s，只要根据sn，查metadata就可以了。
+查看设备的，看的是asset+metadata,根据sn查最后一个output的asset+metadata。
+
+14点30分 发布订阅 done
+
+然后是 addrouter 这样就不用再 defaultpublish中手撸
+router了。
+
+发布订阅只要还是用在了与postServer交互了。
+
+aaaaaaaaa，原来，订阅的时候可以直接指定handler
+那样的话，addrouter就是对subscribe的补充了。
+比如订阅统配主题，可以通过add添加handler。
+
+<(￣︶￣)↗[GO!]
+
+打开新大门
+
+那样的话，要SubPub就有点没必要了 todo
+
+对应了 event service 的模式 ！！！物模型相关
+
+0 发布订阅模式是service client的角度定的，全称是
+接收pub topic后，返回sub topic，发布订阅是一种模式，
+
+实现方式，sub(subTopic,callback(pub(pubTopic,msg)))
+是提供服务的service
+
+主动的请求event，只有pub就好了。
+
+16点59分
+
+哇，原来defaultPubHandler是会被覆盖的；
+吐槽，pub sub的主语一直在隐士切换，注意！！！
+

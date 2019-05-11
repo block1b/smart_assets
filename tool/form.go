@@ -27,3 +27,5 @@ type DeviceForm struct {
 
 	NickForm
 }
+
+//

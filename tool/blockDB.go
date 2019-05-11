@@ -16,6 +16,26 @@ const bigchaindb_addr  = "192.168.113.6:9984"
 
 // http get 查询 bigchaindb 的查询接口
 
+func GetMetadata(search string)([]byte, error){
+	params := url.Values{}
+	Url, err := url.Parse("http://"+bigchaindb_addr+"/api/v1/metadata")
+	if err != nil {
+		panic(err.Error())
+	}
+	params.Set("search", search)
+	//如果参数中有中文参数,这个方法会进行URLEncode
+	Url.RawQuery = params.Encode()
+	urlPath := Url.String()
+	resp, err := http.Get(urlPath)
+	defer resp.Body.Close()
+	s, err := ioutil.ReadAll(resp.Body)
+	if err != nil{
+		fmt.Println("read resp.Body ",err)
+		return nil,err
+	}
+	return s, nil
+}
+
 func GetAsset(search string)([]byte, error){
 	params := url.Values{}
 	Url, err := url.Parse("http://"+bigchaindb_addr+"/api/v1/assets")
@@ -675,4 +695,57 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 	// todo 提交给postServer,路由中添加接收处理，响应前端
 	
 	return nil
+}
+
+// 获取个人历史账单 balanceSn
+// 同getMetadata() param:Sn return [{metadataresult}]
+func GetPersonBills(args NickForm)([]byte, error){
+	sn := args.Sn.String()
+	return GetMetadata(sn)
+}
+
+// 查看设备信息
+// OutputQuery -> outputResult(transferId)
+// transferById -> assetInfo，metadataInfo
+func GetIotInfo(args NickForm) (DeviceForm, error) {
+	_, unspentOutputResult, err := OutputQuery(args)
+	if err!= nil{
+		return DeviceForm{}, errors.New("bad device : device un define")
+	}
+	transactionByte, err := GetTransactionById(unspentOutputResult.TransactionId)
+	if err!= nil{
+		return DeviceForm{}, errors.New("GetTransactionById : no result")
+	}
+	var transaction Transaction
+	err = json.Unmarshal(transactionByte, &transaction)
+	if err != nil{
+		fmt.Println("unmarshal ",err)
+		return DeviceForm{}, err
+	}
+
+	// 抽取 asset，metadata中的info 部分字段用于展示
+	iotAssetInfo := transaction.Asset.Data.Info
+	iotmetadataInfo := transaction.Metadata.Info
+	iab, err := json.Marshal(iotAssetInfo)
+	imb, err := json.Marshal(iotmetadataInfo)
+	var iotInfo IotInfo
+	var rentInfo RentInfo
+	err = json.Unmarshal(iab, &iotInfo)
+	err = json.Unmarshal(imb, & rentInfo)
+	if err != nil{
+		fmt.Println("unmarshal ",err)
+		return DeviceForm{}, err
+	}
+
+	deviceForm := DeviceForm{
+		//DeviceName string     `json:"device_name"`  // 设备名
+		//DeviceInfo string     `json:"device_info"`  // 设备描述
+		//Status string `json:"status"`  // 设备状态
+		//Ruler string `json:"ruler"`  // 收费规则
+		DeviceName: iotInfo.DeviceName,
+		DeviceInfo: iotInfo.DeviceInfo,
+		Status: rentInfo.Status,
+		Ruler:rentInfo.Ruler,
+	}
+	return deviceForm,err
 }
