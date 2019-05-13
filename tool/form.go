@@ -25,7 +25,48 @@ type DeviceForm struct {
 	Status string `json:"status"`  // 设备状态
 	Ruler string `json:"ruler"`  // 收费规则
 
-	NickForm
+	NickForm `json:"nick_form"`
 }
 
-//
+// 前端请求设备信息
+type GetIotInfoForm struct {
+	ClientId string `json:"clientId"`
+	Iot NickForm `json:"iot"`
+}
+
+// 创建设备
+type NewDeviceForm struct {
+	ClientId string `json:"clientId"`
+	DeviceForm DeviceForm `json:"device_form"`
+}
+
+// 使用设备
+type UserIotForm struct {
+	ClientId string `json:"clientId"`
+	User NickForm `json:"user"`
+	Iot DeviceForm `json:"iot"`
+}
+
+// 获取用户账单
+type GetUerBillsForm struct {
+	ClientId string `json:"clientId"`
+	User NickForm `json:"user"`
+}
+
+// 获取用户余额
+type GetUerBalanceForm struct {
+	ClientId string `json:"clientId"`
+	User NickForm `json:"user"`
+}
+
+// 充值提现
+type UseMoneyForm struct {
+	ClientId string `json:"clientId"`
+	AUser UseBalanceForm `json:"a_user"`
+	BUser NickForm `json:"b_user"`
+}
+
+type ClientIdTransfer struct {
+	ClientId string `json:"clientId"`
+	TransferData TransferPrepare `json:"transferData"`
+}

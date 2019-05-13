@@ -2,20 +2,20 @@ package main
 
 import (
 	"fmt"
-	"log"
-	. "smart_assets/tool"
 	"sync"
+
+	. "smart_assets/tool"
+
+	. "smart_assets/pile"
 )
 
 func main() {
 	var wg sync.WaitGroup
 	// 初始化 mqtt client
-	log.Println("连接mqtt broker")
 	Init()
 	wg.Add(1)
 	// 初始化api
-	log.Println("注册api")
-	err := InitApi()
+	err := InitPileApi()
 	if err != nil {
 		fmt.Println("初始化API失败")
 		wg.Done()

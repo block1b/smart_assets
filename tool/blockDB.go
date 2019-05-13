@@ -122,13 +122,33 @@ func OutputQuery(args NickForm) (Output,GetOutputResult, error) {
 		fmt.Println("unmarshal ",err)
 		return Output{},GetOutputResult{}, err
 	}
-	asset_id := assets[0].Id
+	asset_id := assets[0].Id  // 无用
+	asset_id = args.Sn.AssetId  // 老老实实用唯一标识就是了
+
 	fmt.Println("余额资产id", asset_id)
 	publicKey := sn.PublicKey
 	outputsByte, err := GetOutputs(publicKey,"true")
 	if err != nil{
 		fmt.Println("get asset ",err)
 		return Output{},GetOutputResult{}, err
+	}
+	if outputsByte == nil{
+		// 无数据
+		if args.Sn.Type == "balance"{
+			// 新建资产
+			err = CreateBalanceAsset(args)
+			if err != nil{
+				fmt.Println("create ", err)
+				return Output{},GetOutputResult{}, err
+			}
+			// 返回amount = 1 不能初始化0 needs to be greater than zero
+			// 再次查询
+			time.Sleep(time.Second*1)
+			return OutputQuery(args)
+		}else {
+			return Output{},GetOutputResult{}, err
+		}
+
 	}
 	var getOutPutResults []GetOutputResult
 	err = json.Unmarshal(outputsByte, &getOutPutResults)
@@ -254,7 +274,12 @@ func CreateBalanceAsset(args NickForm) error {
 	}
 
 	fmt.Println("post :", transferPrepare)
-	// todo 提交给postServer,路由中添加接收处理，响应前端
+	// 提交给postServer,路由中添加接收处理，响应前端
+
+	err := PostWork(transferPrepare)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -328,7 +353,12 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) error{
 	}
 
 	fmt.Println("post :", transferPrepare)
-	// todo 提交给postServer,路由中添加接收处理，响应前端
+	// 提交给postServer,路由中添加接收处理，响应前端
+
+	err := PostWork(transferPrepare)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -464,7 +494,11 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 	}
 
 	fmt.Println("post :", transferPrepare)
-	// todo 提交给postServer,路由中添加接收处理，响应前端
+	// 提交给postServer,路由中添加接收处理，响应前端
+	err = PostWork(transferPrepare)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -529,13 +563,19 @@ func CreateDevice(deviceForm DeviceForm) error {
 	transferPrepare := TransferPrepare{
 		Operation:operation,
 		Asset:asset,
+		Signers:ADMIN_PUBLIC_KEY,
 		Recipients:recipients,
 		PrivateKeys:privateKeys,
 		Metadata:metadata,
 	}
 
 	fmt.Println("post :", transferPrepare)
-	// todo 提交给postServer,路由中添加接收处理，响应前端
+	// 提交给postServer,路由中添加接收处理，响应前端
+
+	err := PostWork(transferPrepare)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -606,6 +646,10 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 		fmt.Println("unmarshal ",err)
 		return err
 	}
+	if oldrentInfo.UserPublicKey != user.PublicKey{
+		// 非授权用户操作；本来应该直接把设备转给user的，就没有这种问题了 todo
+		return errors.New("bad user : permission denied")
+	}
 	// 判断status转换逻辑
 	efan := fsm.Init(fsm.FSMState(oldrentInfo.Status))
 	efan.Call(fsm.FSMEvent(iotForm.Status))  // 其实该用event 不是state
@@ -614,6 +658,8 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 		return errors.New("bad use : status not allow")
 	}
 	costTime := "0"  // 初始化为0
+	userNiceName := user.NiceName
+	userPublicKey := user.PublicKey
 	// 归还设备操作计算时间
 	if iotForm.Status == "Return"{
 		// 计算花费时间
@@ -656,6 +702,8 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 			return err
 		}
 		// 支付完成
+		userNiceName = iotForm.NiceName
+		userPublicKey = iotForm.PublicKey
 	}  
 	
 	rentInfo := RentInfo{
@@ -671,8 +719,8 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 		DeviceId:iot.Id,
 		OwnerNickName:iot.NiceName,
 		OwnerPublicKey:iot.PublicKey,
-		UserNickName:user.NiceName,
-		UserPublicKey:user.PublicKey,
+		UserNickName:userNiceName,
+		UserPublicKey:userPublicKey,
 		Status:newStatus,
 		Ruler:iotForm.Ruler,
 		StartTime:time.Now().Format("2006-01-02 03:04:05"),
@@ -692,7 +740,11 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 	}
 
 	fmt.Println("post :", transferPrepare)
-	// todo 提交给postServer,路由中添加接收处理，响应前端
+	// 提交给postServer,路由中添加接收处理，响应前端
+	err = PostWork(transferPrepare)
+	if err != nil {
+		return err
+	}
 	
 	return nil
 }

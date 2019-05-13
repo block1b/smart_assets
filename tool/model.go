@@ -5,6 +5,8 @@ type Sn struct {
 	PublicKey string `json:"public_key"`
 	Type string `json:"type"`  // [balance|iot]
 	Id string `json:"id"`
+
+	AssetId string `json:"asset_id"`
 }
 
 // 自定义结构体，资产信息和元数据
@@ -120,9 +122,17 @@ type GetMetadataResult struct {
 //"inputs":[{"input":"input_msg"}],
 //"recipients": [[["public_key1"],2],[["public_key2",6]]],
 //"private_keys": ["p1","p2"]
+
+//operation='CREATE',
+//signers=alice.public_key,
+//recipients=[([bob.public_key], 10)],
+//asset=game_boy_token
+//inputs=transfer_input,
+
 type TransferPrepare struct {
 	Operation string `json:"operation"`
-	Asset Asset      `json:"asset, omitempty"`
+	Asset Asset      `json:"asset"`
+	Signers string   `json:"signers, omitempty"`
 	Inputs []Input   `json:"inputs, omitempty"`
 	Recipients []interface{} `json:"recipients"`
 	PrivateKeys []string `json:"private_keys"`

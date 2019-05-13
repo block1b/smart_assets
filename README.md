@@ -316,3 +316,17 @@ aaaaaaaaa，原来，订阅的时候可以直接指定handler
 哇，原来defaultPubHandler是会被覆盖的；
 吐槽，pub sub的主语一直在隐士切换，注意！！！
 
+2019年5月12日14点51分
+
+坑就是，向postServer转发后，请求响应模式会失去响应对象，
+一个方法就是，向postServer发送的请求 payload中带响应topic，
+smartServer收到响应后，转发到前端；
+
+2019年5月13日16点56分
+完了呀，balance和asset分不清
+
+还是得用 assetId，
+罢了，就用assetId了，不玩那么多的花了。
+
+自动创建用户余额这个也是个坑 todo
+

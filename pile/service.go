@@ -1,13 +1,17 @@
 package tool
 
 import (
-	"encoding/json"
 	"fmt"
+	"time"
+
+	. "smart_assets/tool"
 )
+
 
 // 提供的服务
 // 类似于api的定义
-func InitApi() error {
+func InitPileApi() error {
+	time.Now()
 	var err error
 	// 获取设备信息
 	err = Sub("/iotInfo", IotInfoPubHandler)
@@ -21,12 +25,7 @@ func InitApi() error {
 		fmt.Println("build api :", err)
 		return err
 	}
-	// 修改设备
-	err = Sub("/updateInfo", UseIotPubHandler)
-	if err != nil{
-		fmt.Println("build api :", err)
-		return err
-	}
+
 	// 租用设备
 	err = Sub("/rentIot", UseIotPubHandler)
 	if err != nil{
@@ -39,6 +38,10 @@ func InitApi() error {
 		fmt.Println("build api :", err)
 		return err
 	}
+
+	// 修改设备状态
+	// todo 跟租用差不多
+
 	// 查看账单
 	err = Sub("/billInfo", BillInfoPubHandler)
 	if err != nil{
@@ -66,17 +69,8 @@ func InitApi() error {
 }
 
 // event 向postServer提交transfer
-func PostWork(transfer TransferPrepare) error {
-	ct := ClientIdTransfer{
-		ClientId:"smartServer",
-		TransferData:transfer,
-	}
-	ctByte, err := json.Marshal(ct)
-	if err != nil {
-		fmt.Println("marshal", err)
-		return err
-	}
-	err = SubPub("/post", PostPubHandler, "postServer/post", ctByte)
+func PostWork(payload []byte) error {
+	err := SubPub("/post", PostPubHandler, "postServer/post", payload)
 	if err != nil {
 		fmt.Println("SubPub", err)
 		return err
