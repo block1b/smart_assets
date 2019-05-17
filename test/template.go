@@ -5,6 +5,10 @@ import (
 	. "smart_assets/tool"
 )
 
+const alice_private_key = "88L2BJC9eNtSWhpPwWqqsLDRGz7aBPhuRNyfsWx4QxWR"
+const alice_public_key = "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq"
+
+
 func prepareData()  {
 	fmt.Println()
 	// 生成数据
@@ -136,14 +140,14 @@ func TempGetUerBalanceForm() GetUerBalanceForm  {
 		//User NickForm `json:"user"`
 		ClientId:"WeChat",
 		User:NickForm{
-			NiceName:"block",
-			PrivateKey:ADMIN_PRIVATE_KEY,
+			NiceName:"admin",
+			PrivateKey:alice_private_key,
 			Sn:Sn{
-				PublicKey:ADMIN_PUBLIC_KEY, // not null
+				PublicKey:alice_public_key, // not null
 				Type:"balance",
 				Id:"main",
 
-				AssetId:"",  // 创建后填写
+				AssetId:ADMIN_BALANCE_ASSET_ID,  // 创建后填写
 			},
 		},
 	}
@@ -166,22 +170,25 @@ func TempUseMoneyForm() UseMoneyForm {
 				Money:"50",
 			},
 			NickForm:NickForm{
-				NiceName:"block",
-				PrivateKey:ADMIN_PRIVATE_KEY,
+				NiceName:"alice",
+				PrivateKey:alice_private_key,
 				Sn:Sn{
-					PublicKey:ADMIN_PUBLIC_KEY, // not null
+					PublicKey:alice_public_key, // not null
 					Type:"balance",
 					Id:"main",
+					AssetId:ADMIN_BALANCE_ASSET_ID,
 				},
 			},
 		},
 		BUser:NickForm{
-			NiceName:"block",
+			NiceName:"admin",
 			PrivateKey:ADMIN_PRIVATE_KEY,
 			Sn:Sn{
 				PublicKey:ADMIN_PUBLIC_KEY, // not null
 				Type:"balance",
 				Id:"main",
+
+				AssetId:ADMIN_BALANCE_ASSET_ID,
 			},
 		},
 	}

@@ -33,7 +33,7 @@ func GetClient() MQTT.Client {
 }
 
 // publish
-func Pub(pubTopic string, payload []byte) error {
+func Pub(pubTopic string, payload interface{}) error {
 	c := GetClient()
 	pubToken := c.Publish(pubTopic, 0, false, payload)
 	pubToken.Wait()
@@ -42,7 +42,7 @@ func Pub(pubTopic string, payload []byte) error {
 // Subscribe !!! 订阅 CLIENTID+"xxx" = smartServer/#
 func Sub(subTopic string, callback MQTT.MessageHandler) error {
 	c := GetClient()
-	if token := c.Subscribe(CLIENTID+subTopic, 0, callback); token.Wait() && token.Error() != nil {
+	if token := c.Subscribe(subTopic, 0, callback); token.Wait() && token.Error() != nil {
 		fmt.Println(token.Error())
 		return token.Error()
 	}

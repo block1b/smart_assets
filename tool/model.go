@@ -76,6 +76,22 @@ type Transaction struct {
 
 }
 
+type TilfilledTransaction struct {
+	Inputs []TilfilledInput  `json:"inputs"`
+	Outputs []Output      `json:"outputs"`
+	Operation string      `json:"operation"`
+	Metadata Data         `json:"metadata"`
+	Asset Asset           `json:"asset"`  // Tran只有id；Create还有data
+	Version string        `json:"version"`
+	Id string             `json:"id"`  // TransactionId
+}
+
+type TilfilledInput struct {
+	OwnersBefore []string `json:"owners_before"`
+	Fulfills Fulfills     `json:"fulfills"`
+	Fulfillment string    `json:"fulfillment"`
+}
+
 type Input struct {
 	OwnersBefore []string `json:"owners_before"`
 	Fulfills Fulfills     `json:"fulfills"`

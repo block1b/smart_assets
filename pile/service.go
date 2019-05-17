@@ -20,7 +20,7 @@ func InitPileApi() error {
 		return err
 	}
 	// 创建设备
-	err = Sub("/newInfo", NewInfoPubHandler)
+	err = Sub("/newInfo", NewIotPubHandler)
 	if err != nil{
 		fmt.Println("build api :", err)
 		return err

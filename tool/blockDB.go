@@ -106,55 +106,57 @@ func GetTransactionById(transaction_id string) ([]byte,error) {
 //1. 新用户，无余额资产，管理员创建该用户的余额资产，初始化为0，重新查询。
 //2. 余额分散，使用该用户账号合并余额资产，重新查询。
 // 根据sn查询 unspet balance|iot
-func OutputQuery(args NickForm) (Output,GetOutputResult, error) {
+func OutputQuery(args NickForm) (Output,[]GetOutputResult, error) {
 	sn := args.Sn
 	snStr := sn.String()
 	fmt.Println("select sn ", snStr)
 	assetsByte, err := GetAsset(snStr)
 	if err != nil{
 		fmt.Println("get asset ",err)
-		return Output{},GetOutputResult{}, err
+		return Output{},[]GetOutputResult{}, err
+	}
+	if assetsByte == nil{
+		// 无数据
+		if args.Sn.Type == "balance"{
+			// 新建资产
+			err = errors.New("unCreateBalance")
+			return Output{},[]GetOutputResult{}, err
+		}else {
+			return Output{},[]GetOutputResult{}, err
+		}
 	}
 	fmt.Println("assets", string(assetsByte))
 	var assets []GetAssetResult
 	err = json.Unmarshal(assetsByte, &assets)
 	if err != nil{
 		fmt.Println("unmarshal ",err)
-		return Output{},GetOutputResult{}, err
+		return Output{},[]GetOutputResult{}, err
 	}
-	asset_id := assets[0].Id  // 无用
-	asset_id = args.Sn.AssetId  // 老老实实用唯一标识就是了
+	//asset_id := assets[0].Id  // 无用
+	asset_id := args.Sn.AssetId  // 老老实实用唯一标识就是了
 
 	fmt.Println("余额资产id", asset_id)
 	publicKey := sn.PublicKey
-	outputsByte, err := GetOutputs(publicKey,"true")
+	outputsByte, err := GetOutputs(publicKey,"false")
 	if err != nil{
 		fmt.Println("get asset ",err)
-		return Output{},GetOutputResult{}, err
+		return Output{},[]GetOutputResult{}, err
 	}
 	if outputsByte == nil{
 		// 无数据
 		if args.Sn.Type == "balance"{
-			// 新建资产
-			err = CreateBalanceAsset(args)
-			if err != nil{
-				fmt.Println("create ", err)
-				return Output{},GetOutputResult{}, err
-			}
-			// 返回amount = 1 不能初始化0 needs to be greater than zero
-			// 再次查询
-			time.Sleep(time.Second*1)
-			return OutputQuery(args)
+			// 新建资产 todo 返回个0就行了
+			err = errors.New("zeroBalance")
+			return Output{},[]GetOutputResult{}, err
 		}else {
-			return Output{},GetOutputResult{}, err
+			return Output{},[]GetOutputResult{}, err
 		}
-
 	}
 	var getOutPutResults []GetOutputResult
 	err = json.Unmarshal(outputsByte, &getOutPutResults)
 	if err != nil{
 		fmt.Println("unmarshal ",err)
-		return Output{},GetOutputResult{}, err
+		return Output{},[]GetOutputResult{}, err
 	}
 	var unSpentOutputResults []GetOutputResult
 	var amount string  // 坑，amount输出是string，输入的时候是int
@@ -164,16 +166,17 @@ func OutputQuery(args NickForm) (Output,GetOutputResult, error) {
 		transactionByte, err := GetTransactionById(getOutPutResult.TransactionId)
 		if err != nil{
 			fmt.Println("get transaction",err)
-			return Output{},GetOutputResult{}, err
+			return Output{},[]GetOutputResult{}, err
 		}
-		var transaction Transaction
+		var transaction TilfilledTransaction
 		err = json.Unmarshal(transactionByte, &transaction)
 		if err != nil{
 			fmt.Println("unmarshal ",err)
-			return Output{},GetOutputResult{}, err
+			return Output{},[]GetOutputResult{}, err
 		}
 		// 按asset_id过滤 还好struct自己解决了无Id的问题 CREATE 无id
-		if transaction.Asset.Id == asset_id{
+		if transaction.Asset.Id != "" && transaction.Asset.Id == asset_id ||
+			transaction.Asset.Id == "" && transaction.Id == asset_id{
 			fmt.Println("unspent output")
 			unSpentOutputResults = append(unSpentOutputResults, getOutPutResult)
 			amount = transaction.Outputs[getOutPutResult.OutputIndex].Amount  // 只在 unSpentOutputResults len=1 有效
@@ -186,39 +189,27 @@ func OutputQuery(args NickForm) (Output,GetOutputResult, error) {
 		fmt.Println("无记录")
 		// 如果是设备查询，直接返回空
 		if args.Type == "iot"{
-			return Output{},GetOutputResult{}, err
+			return Output{},[]GetOutputResult{}, err
 		}
-
 		// 新建资产
-		err = CreateBalanceAsset(args)
-		if err != nil{
-			fmt.Println("create ", err)
-			return Output{},GetOutputResult{}, err
-		}
-		// 返回amount = 1 不能初始化0 needs to be greater than zero
-		// 再次查询
-		time.Sleep(time.Second*1)
-		return OutputQuery(args)
+		err = errors.New("zeroBalance")
+		return Output{},[]GetOutputResult{}, err
 	case 1:
 		fmt.Println("该用户资产可用数量为", amount ,outPut.Amount)
-		return outPut,unSpentOutputResults[0], nil
+		return outPut,unSpentOutputResults, nil
 	default:
 		if args.Type == "balance"{
 
 			fmt.Println("该用于余额token需要合并")
 			// 合并用户资产
-			err = MergeBalanceAsset(args, unSpentOutputResults)
-			if err != nil{
-				fmt.Println("merge ", err)
-				return Output{},GetOutputResult{},nil
-			}
-			// 再次查询
-			time.Sleep(time.Second*1)
-			return OutputQuery(args)
+			//err = MergeBalanceAsset(args, unSpentOutputResults)
+			// 新建资产
+			err = errors.New("unMergeBalance")
+			return Output{},unSpentOutputResults, err
 		}else {
 			// 理论上只有balance需要合并
 			fmt.Println("bad request")
-			return Output{},GetOutputResult{},nil
+			return Output{},[]GetOutputResult{},nil
 		}
 	}
 	//return Output{},nil
@@ -233,7 +224,7 @@ func OutputQuery(args NickForm) (Output,GetOutputResult, error) {
 //"recipients": [[["public_key1"],2],[["public_key2",6]]],
 //"private_keys": ["p1","p2"]
 //}
-func CreateBalanceAsset(args NickForm) error {
+func CreateBalanceAsset(args NickForm) (TransferPrepare,error) {
 	// prepare data
 	operation := "CREATE"
 	balanceInfo := BalanceInfo{
@@ -245,7 +236,7 @@ func CreateBalanceAsset(args NickForm) error {
 	asset := Asset{Data:Data{Sn:args.String(),Info:balanceInfo}}  // not ID
 	//input := Input{}  // TRANSFER
 	//Inputs := []Input{input}
-	recipients := []interface{}{Recipient{args.PublicKey,1}.ToList()}
+	recipients := []interface{}{Recipient{args.PublicKey,1000}.ToList()}
 	privateKeys := []string{ADMIN_PRIVATE_KEY}
 	billInfo := BillInfo{
 		//SignerNickName string       `json:"signer_nick_name"`  // 发起人
@@ -260,7 +251,7 @@ func CreateBalanceAsset(args NickForm) error {
 		RecipientNickName:  args.NiceName,
 		RecipientPublicKey: args.PublicKey,
 		Reason:"新用户余额初始化",
-		Cost:"1",
+		Cost:"1000",
 		Time:time.Now().Format("2006-01-02 03:04:05"),
 	}
 	metadata := Data{Sn:args.Sn.String(), Info:billInfo}
@@ -268,6 +259,7 @@ func CreateBalanceAsset(args NickForm) error {
 	transferPrepare := TransferPrepare{
 		Operation:operation,
 		Asset:asset,
+		Signers:ADMIN_PUBLIC_KEY,
 		Recipients:recipients,
 		PrivateKeys:privateKeys,
 		Metadata:metadata,
@@ -276,15 +268,15 @@ func CreateBalanceAsset(args NickForm) error {
 	fmt.Println("post :", transferPrepare)
 	// 提交给postServer,路由中添加接收处理，响应前端
 
-	err := PostWork(transferPrepare)
-	if err != nil {
-		return err
-	}
-	return nil
+	//err := PostWork(transferPrepare)
+	//if err != nil {
+	//	return err
+	//}
+	return transferPrepare,nil
 }
 
 // 合并资产
-func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) error{
+func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) (TransferPrepare,error){
 	// 余额分散时合并
 	// prepare data
 	operation := "TRANSFER"
@@ -294,20 +286,20 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) error{
 		transactionByte, err := GetTransactionById(outPutResult.TransactionId)
 		if err != nil{
 			fmt.Println("get transaction",err)
-			return err
+			return TransferPrepare{},err
 		}
 		var transaction Transaction
 		err = json.Unmarshal(transactionByte, &transaction)
 		if err != nil{
 			fmt.Println("unmarshal ",err)
-			return err
+			return TransferPrepare{},err
 		}
 		// prepare inputs
 		output := transaction.Outputs[outPutResult.OutputIndex]
 		amountInt,err:=strconv.Atoi(output.Amount)
 		if err != nil{
 			fmt.Println("Atoi ",err)
-			return err
+			return TransferPrepare{},err
 		}
 		amount += amountInt
 		input := Input{
@@ -355,11 +347,11 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) error{
 	fmt.Println("post :", transferPrepare)
 	// 提交给postServer,路由中添加接收处理，响应前端
 
-	err := PostWork(transferPrepare)
-	if err != nil {
-		return err
-	}
-	return nil
+	//err := PostWork(transferPrepare)
+	//if err != nil {
+	//	return err
+	//}
+	return transferPrepare,nil
 }
 
 // 充值提现
@@ -374,7 +366,7 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) error{
 //## 可选流
 //1. 执行失败，提示原因，用例结束
 
-func UseBalance(args UseBalanceForm, bUser NickForm) error {
+func UseBalance(args UseBalanceForm, bUser NickForm) (TransferPrepare,error) {
 	cost := args.CostMoney
 	var a_user NickForm
 	var b_user NickForm
@@ -383,10 +375,13 @@ func UseBalance(args UseBalanceForm, bUser NickForm) error {
 		// 充值，由admin sign
 		a_user = NickForm{
 			NiceName:ADMIN_NICK_NAME,
+			PrivateKey:ADMIN_PRIVATE_KEY,
 			Sn:Sn{
 				PublicKey:ADMIN_PUBLIC_KEY,
 				Type:"balance",
 				Id:"main",  // 主钱包
+
+				AssetId:ADMIN_BALANCE_ASSET_ID,
 			},
 		}
 		b_user = args.NickForm
@@ -399,6 +394,8 @@ func UseBalance(args UseBalanceForm, bUser NickForm) error {
 				PublicKey:ADMIN_PUBLIC_KEY,
 				Type:"balance",
 				Id:"main",  // 主钱包
+
+				AssetId:ADMIN_BALANCE_ASSET_ID,
 			},
 		}
 		a_user = args.NickForm
@@ -408,15 +405,15 @@ func UseBalance(args UseBalanceForm, bUser NickForm) error {
 		a_user = args.NickForm
 		b_user = bUser
 	}
-	err := BalanceTransfer(a_user, b_user, cost)
+	transferPrepare,err := BalanceTransfer(a_user, b_user, cost)
 	if err != nil{
-		return err
+		return TransferPrepare{},err
 	}
-	return nil
+	return transferPrepare,nil
 }
 
 // BalanceTransfer(A,B,CostMoney)
-func BalanceTransfer(A, B NickForm, cost CostMoney) error {
+func BalanceTransfer(A, B NickForm, cost CostMoney) (TransferPrepare,error) {
 	//Operation string `json:"operation"`
 	//Inputs []Input   `json:"inputs, omitempty"`
 	//Recipients []interface{} `json:"recipients"`
@@ -425,22 +422,36 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 	operation := "TRANSFER"
 	var err error
 	var a_unspentOutput Output
-	var a_unspentOutputResult GetOutputResult
+	var a_unspentOutputResult []GetOutputResult
 	var b_unspentOutput Output
 	//var b_unspentOutputResult GetOutputResult
 	var inputs []Input
 	var recipients []interface{}
 	var privateKeys []string
 
-	a_unspentOutput,a_unspentOutputResult, err = OutputQuery(A)  // 支付方
+	a_unspentOutput,a_unspentOutputResult, err = GetBalanceOutputs(A)  // 支付方
 	if err != nil{
 		fmt.Println("asset query ", err)
-		return err
+		errType := fmt.Sprint(err)
+		if errType == "zeroBalance"{
+			a_unspentOutput = Output{
+				Amount:"0",
+			}
+		}else {
+			return TransferPrepare{},err
+		}
 	}
-	b_unspentOutput,_, err = OutputQuery(A)  // 收款方
+	b_unspentOutput,_, err = GetBalanceOutputs(B)  // 收款方
 	if err != nil{
 		fmt.Println("asset query ", err)
-		return err
+		errType := fmt.Sprint(err)
+		if errType == "zeroBalance"{
+			b_unspentOutput = Output{
+				Amount:"0",
+			}
+		}else {
+			return TransferPrepare{},err
+		}
 	}
 	input := Input{
 		//OwnersBefore []string `json:"owners_before"`
@@ -449,8 +460,8 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 		OwnersBefore:a_unspentOutput.PublicKeys,
 		Fulfillment:a_unspentOutput.Condition.Details,
 		Fulfills:Fulfills{
-			TransactionId: a_unspentOutputResult.TransactionId,
-			OutputIndex:   a_unspentOutputResult.OutputIndex,
+			TransactionId: a_unspentOutputResult[0].TransactionId,
+			OutputIndex:   a_unspentOutputResult[0].OutputIndex,
 		},
 	}
 	inputs = []Input{input}
@@ -463,7 +474,7 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 
 	// check amount 虽然不必要
 	if a_amount < 0 || b_amount <0{
-		return errors.New("amount less : not enough")
+		return TransferPrepare{},errors.New("amount less : not enough")
 	}
 	recipients = []interface{}{
 		Recipient{A.PublicKey,a_amount}.ToList(),
@@ -487,6 +498,7 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 
 	transferPrepare := TransferPrepare{
 		Operation:operation,
+		Asset:Asset{Id:A.Sn.AssetId,},
 		Inputs:inputs,
 		Recipients:recipients,
 		PrivateKeys:privateKeys,
@@ -495,11 +507,11 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 
 	fmt.Println("post :", transferPrepare)
 	// 提交给postServer,路由中添加接收处理，响应前端
-	err = PostWork(transferPrepare)
-	if err != nil {
-		return err
-	}
-	return nil
+	//err = PostWork(transferPrepare)
+	//if err != nil {
+	//	return err
+	//}
+	return transferPrepare,nil
 }
 
 // 查看单设备信息，同资产查询
@@ -515,7 +527,7 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) error {
 //3. 前端生成该设备sn的二维码；
 //## 可选流
 //1. 提交失败，提示原因，用例结束
-func CreateDevice(deviceForm DeviceForm) error {
+func CreateDevice(deviceForm DeviceForm) (TransferPrepare,error) {
 	// prepare data
 	args := deviceForm.NickForm
 	operation := "CREATE"
@@ -572,11 +584,11 @@ func CreateDevice(deviceForm DeviceForm) error {
 	fmt.Println("post :", transferPrepare)
 	// 提交给postServer,路由中添加接收处理，响应前端
 
-	err := PostWork(transferPrepare)
-	if err != nil {
-		return err
-	}
-	return nil
+	//err := PostWork(transferPrepare)
+	//if err != nil {
+	//	return err
+	//}
+	return transferPrepare,nil
 }
 
 // 租用/归还设备
@@ -592,13 +604,13 @@ func CreateDevice(deviceForm DeviceForm) error {
 //1. 余额不足，先充值，本用例结束；
 //2. 设备状态判断不通过，提示原因，用例结束；
 
-func UseIot(user NickForm, iotForm DeviceForm) error {
+func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,error) {
 	iot := iotForm.NickForm
 	// 检查设备,获取output
 	//OutputQuery(args NickForm) (Output,GetOutputResult, error)
 	unspentOutput, unspentOutputResult, err := OutputQuery(iot)
 	if err!= nil{
-		return errors.New("bad device : device un define")
+		return TransferPrepare{},TransferPrepare{},errors.New("bad device : device un define")
 	}
 	operation := "TRANSFER"
 	var inputs []Input
@@ -612,8 +624,8 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 		OwnersBefore:unspentOutput.PublicKeys,
 		Fulfillment:unspentOutput.Condition.Details,
 		Fulfills:Fulfills{
-			TransactionId: unspentOutputResult.TransactionId,
-			OutputIndex:   unspentOutputResult.OutputIndex,
+			TransactionId: unspentOutputResult[0].TransactionId,
+			OutputIndex:   unspentOutputResult[0].OutputIndex,
 		},
 	}
 	inputs = []Input{input}
@@ -623,49 +635,50 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 	privateKeys = []string{iot.PrivateKey}  // 坑啊，罢了，直接用管理员的好了
 
 	// 获取当前设备状态
-	transactionByte, err := GetTransactionById(unspentOutputResult.TransactionId)
+	transactionByte, err := GetTransactionById(unspentOutputResult[0].TransactionId)
 	if err != nil{
 		fmt.Println("get transaction",err)
-		return err
+		return TransferPrepare{},TransferPrepare{},err
 	}
 	var transaction Transaction
 	err = json.Unmarshal(transactionByte, &transaction)
 	if err != nil{
 		fmt.Println("unmarshal ",err)
-		return err
+		return TransferPrepare{},TransferPrepare{},err
 	}
 
 	var oldrentInfo RentInfo
 	rentInfoByte, err := json.Marshal(transaction.Metadata.Info)
 	if err != nil{
 		fmt.Println("marshal ",err)
-		return err
+		return TransferPrepare{},TransferPrepare{},err
 	}
 	err = json.Unmarshal(rentInfoByte, &oldrentInfo)
 	if err != nil{
 		fmt.Println("unmarshal ",err)
-		return err
+		return TransferPrepare{},TransferPrepare{},err
 	}
 	if oldrentInfo.UserPublicKey != user.PublicKey{
 		// 非授权用户操作；本来应该直接把设备转给user的，就没有这种问题了 todo
-		return errors.New("bad user : permission denied")
+		return TransferPrepare{},TransferPrepare{},errors.New("bad user : permission denied")
 	}
 	// 判断status转换逻辑
 	efan := fsm.Init(fsm.FSMState(oldrentInfo.Status))
 	efan.Call(fsm.FSMEvent(iotForm.Status))  // 其实该用event 不是state
 	newStatus := string(efan.GetState())
 	if newStatus == "Err"{
-		return errors.New("bad use : status not allow")
+		return TransferPrepare{},TransferPrepare{},errors.New("bad use : status not allow")
 	}
 	costTime := "0"  // 初始化为0
 	userNiceName := user.NiceName
 	userPublicKey := user.PublicKey
+	var balanceTransfer TransferPrepare
 	// 归还设备操作计算时间
 	if iotForm.Status == "Return"{
 		// 计算花费时间
 		startTime,err := time.Parse("2006-01-02 03:04:05", oldrentInfo.StartTime)
 		if err != nil{
-			return err
+			return TransferPrepare{},TransferPrepare{},err
 		}
 		costTime = string(time.Now().Unix()-startTime.Unix())  // 时间单位 s
 		// 支付
@@ -688,7 +701,7 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 		r,err:=strconv.Atoi(oldrentInfo.Ruler)
 		if err != nil{
 			fmt.Println("Atoi ",err)
-			return err
+			return TransferPrepare{},TransferPrepare{},err
 		}
 		money := string(c*r)
 		cost := CostMoney{
@@ -697,9 +710,9 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 			CostType: "payment",
 			Money:money,
 		}
-		err = BalanceTransfer(a_user, b_user, cost)
+		balanceTransfer,err = BalanceTransfer(a_user, b_user, cost)
 		if err != nil {
-			return err
+			return TransferPrepare{},TransferPrepare{},err
 		}
 		// 支付完成
 		userNiceName = iotForm.NiceName
@@ -741,12 +754,12 @@ func UseIot(user NickForm, iotForm DeviceForm) error {
 
 	fmt.Println("post :", transferPrepare)
 	// 提交给postServer,路由中添加接收处理，响应前端
-	err = PostWork(transferPrepare)
-	if err != nil {
-		return err
-	}
+	//err = PostWork(transferPrepare)
+	//if err != nil {
+	//	return err
+	//}
 	
-	return nil
+	return balanceTransfer,transferPrepare,nil
 }
 
 // 获取个人历史账单 balanceSn
@@ -764,7 +777,7 @@ func GetIotInfo(args NickForm) (DeviceForm, error) {
 	if err!= nil{
 		return DeviceForm{}, errors.New("bad device : device un define")
 	}
-	transactionByte, err := GetTransactionById(unspentOutputResult.TransactionId)
+	transactionByte, err := GetTransactionById(unspentOutputResult[0].TransactionId)
 	if err!= nil{
 		return DeviceForm{}, errors.New("GetTransactionById : no result")
 	}
@@ -800,4 +813,137 @@ func GetIotInfo(args NickForm) (DeviceForm, error) {
 		Ruler:rentInfo.Ruler,
 	}
 	return deviceForm,err
+}
+
+// 初始化主钱包
+func InitWallet() (TransferPrepare,error) {
+	// 创建主钱包为admin初始化余额1000
+	// 同func CreateBalanceAsset(args NickForm) (TransferPrepare,error)
+	// prepare data
+	operation := "CREATE"
+	balanceInfo := BalanceInfo{
+		OwnerNickName: ADMIN_NICK_NAME,
+		OwnerPublicKey: ADMIN_PUBLIC_KEY,
+		Type: "balance",
+		Id: "main",
+	}
+	sn := fmt.Sprintf("%v.%v.%v",ADMIN_PUBLIC_KEY,"balance","main")
+	asset := Asset{Data:Data{Sn:sn,Info:balanceInfo}}  // not ID
+	//input := Input{}  // TRANSFER
+	//Inputs := []Input{input}
+	recipients := []interface{}{Recipient{ADMIN_PUBLIC_KEY,DEFAULT_ACOUNT}.ToList()}
+	privateKeys := []string{ADMIN_PRIVATE_KEY}
+	billInfo := BillInfo{
+		SignerNickName:     ADMIN_NICK_NAME,
+		SignerPublicKey:    ADMIN_PUBLIC_KEY,
+		RecipientNickName:  ADMIN_NICK_NAME,
+		RecipientPublicKey: ADMIN_PUBLIC_KEY,
+		Reason:"主钱包初始化",
+		Cost:string(DEFAULT_ACOUNT),
+		Time:time.Now().Format("2006-01-02 03:04:05"),
+	}
+	metadata := Data{Sn:sn, Info:billInfo}
+
+	transferPrepare := TransferPrepare{
+		Operation:operation,
+		Asset:asset,
+		Signers:ADMIN_PUBLIC_KEY,
+		Recipients:recipients,
+		PrivateKeys:privateKeys,
+		Metadata:metadata,
+	}
+
+	fmt.Println("post :", transferPrepare)
+
+	return transferPrepare,nil
+}
+
+// 查询余额，输出 output，putputresult，err
+// 0 ：output{amount：0}
+// 1 ：output{amount：x}
+// n : outputs
+//处理逻辑外部处理
+func GetBalanceOutputs(args NickForm) (Output,[]GetOutputResult, error) {
+	// 改进自
+	//func OutputQuery(args NickForm) (Output,[]GetOutputResult, error) {
+	fmt.Println("select assetid", args.Sn.AssetId)
+	assetsByte, err := GetAsset(args.Sn.AssetId)
+	if err != nil{
+		fmt.Println("get asset ",err)
+		return Output{},[]GetOutputResult{}, err
+	}
+	if assetsByte == nil{
+		// 无主钱包
+		//func InitWallet(args NickForm) (TransferPrepare,error)
+		return Output{},[]GetOutputResult{}, errors.New("noWallet")
+	}
+	fmt.Println("assets", string(assetsByte))
+	var assets []GetAssetResult
+	err = json.Unmarshal(assetsByte, &assets)
+	if err != nil{
+		fmt.Println("unmarshal ",err)
+		return Output{},[]GetOutputResult{}, err
+	}
+	if len(assets) == 0{
+		// 无主钱包
+		//func InitWallet(args NickForm) (TransferPrepare,error)
+		return Output{},[]GetOutputResult{}, errors.New("noWallet")
+	}
+	asset_id := args.Sn.AssetId  // 老老实实用唯一标识就是了
+	fmt.Println("余额资产id", asset_id)
+	publicKey := args.Sn.PublicKey
+	outputsByte, err := GetOutputs(publicKey,"false")
+	if err != nil{
+		fmt.Println("get output ",err)
+		return Output{},[]GetOutputResult{}, err
+	}
+	if outputsByte == nil{
+		// 该用户无任何交易记录，此处是普通用户无余额
+		return Output{Amount:"0"},[]GetOutputResult{}, nil
+	}
+	var getOutPutResults []GetOutputResult
+	err = json.Unmarshal(outputsByte, &getOutPutResults)
+	if err != nil{
+		fmt.Println("unmarshal ",err)
+		return Output{},[]GetOutputResult{}, err
+	}
+	if len(getOutPutResults) ==0 {
+		// 该用户无任何交易记录，此处是普通用户无余额
+		return Output{Amount:"0"},[]GetOutputResult{}, nil
+	}
+	var unSpentOutputResults []GetOutputResult
+	//var amount string  // 坑，amount输出是string，输入的时候是int
+	var outPut Output  // 单例返回
+	// 包括balance和iot的未消耗outputs，过滤
+	for _, getOutPutResult := range getOutPutResults{
+		transactionByte, err := GetTransactionById(getOutPutResult.TransactionId)
+		if err != nil{
+			fmt.Println("get transaction",err)
+			return Output{},[]GetOutputResult{}, err
+		}
+		var transaction TilfilledTransaction
+		err = json.Unmarshal(transactionByte, &transaction)
+		if err != nil{
+			fmt.Println("unmarshal ",err)
+			return Output{},[]GetOutputResult{}, err
+		}
+		// 按asset_id过滤 还好struct自己解决了无Id的问题 CREATE 无id
+		if transaction.Asset.Id != "" && transaction.Asset.Id == asset_id ||
+			transaction.Asset.Id == "" && transaction.Id == asset_id{
+			fmt.Println("unspent output")
+			unSpentOutputResults = append(unSpentOutputResults, getOutPutResult)
+			//amount = transaction.Outputs[getOutPutResult.OutputIndex].Amount  // 只在 unSpentOutputResults len=1 有效
+			outPut = transaction.Outputs[getOutPutResult.OutputIndex]
+		}
+	}
+	// 需要合并余额
+	if len(unSpentOutputResults) > 1{
+		return Output{},unSpentOutputResults,errors.New("unMerge")
+	}
+	// 有output但是资产不对，余额还是0
+	if unSpentOutputResults == nil{
+		// 该用户无任何交易记录，此处是普通用户无余额
+		return Output{Amount:"0"},[]GetOutputResult{}, nil
+	}
+	return outPut,unSpentOutputResults,nil
 }

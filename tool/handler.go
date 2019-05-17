@@ -21,11 +21,49 @@ var ConnectionLostHandler MQTT.ConnectionLostHandler = func(client MQTT.Client, 
 	fmt.Printf("lost connect , err: %v\n", err)
 }
 
-// pub pkg handler
+// pub pkg handler +/post
 var PostPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	fmt.Printf("[PostPubHandler] TOPIC: %s MSG: %s\n", msg.Topic(), msg.Payload())
-	// 等待postServer的响应，理论上应该再转发给user的，但是异步的需要追踪 todo
-
+	// 等待postServer的响应，理论上应该再转发给user的，但是异步的需要追踪
+	// +/post
+	subTopic := fmt.Sprintf("%v",msg.Topic())
+	sts := strings.Split(subTopic, "/")
+	pubClientId := sts[0]
+	// 只处理create transfer的响应 Transaction
+	var createResult TilfilledTransaction
+	err := json.Unmarshal(msg.Payload(), &createResult)
+	if err != nil {
+		fmt.Println("[PostPubHandler] unmarshal", err)
+		return
+	}
+	if createResult.Operation == "CREATE"{
+		ss := strings.Split(createResult.Asset.Data.Sn,".")
+		assetType := ss[1]
+		if assetType == "balance"{
+			// 跟新 +/ClientId/balanceAssetId {balanceAssetId:createResult.Id}
+			// pub
+			balanceId := struct {
+				BalanceAssetId string `json:"balance_asset_id"`
+			}{createResult.Id}
+			bb, err := json.Marshal(balanceId)
+			err = Pub(pubClientId+"/balanceAssetId", bb)
+			if err != nil{
+				fmt.Println(err)
+			}
+		}
+		if assetType == "iot"{
+			// 跟新 +/iotAssetId {iotAssetId:createResult.Id}
+			// pub
+			iotId := struct {
+				IotAssetId string `json:"iot_asset_id"`
+			}{createResult.Id}
+			ib, err := json.Marshal(iotId)
+			err = Pub(pubClientId+"/iotAssetId", ib)
+			if err != nil{
+				fmt.Println(err)
+			}
+		}
+	}
 }
 
 // 查看设备信息
@@ -56,30 +94,33 @@ var IotInfoPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Me
 }
 
 // 创建设备
-//NewInfoPubHandler
-var NewInfoPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
-	fmt.Printf("[NewInfoPubHandler] TOPIC: %s MSG: %s\n", msg.Topic(), msg.Payload())
+//NewIotPubHandler
+var NewIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
+	fmt.Printf("[NewIotPubHandler] TOPIC: %s MSG: %s\n", msg.Topic(), msg.Payload())
 	//func CreateDevice(deviceForm DeviceForm) error
 	repPayload := "ok"
 	var newDeviceForm NewDeviceForm
 	err := json.Unmarshal(msg.Payload(), &newDeviceForm)
 	if err != nil{
-		fmt.Println("NewInfoPubHandler :", err)
+		fmt.Println("NewIotPubHandler :", err)
 		repPayload = "err"
-		return
 	}
-	err = CreateDevice(newDeviceForm.DeviceForm)
+	createTransfer,err := CreateDevice(newDeviceForm.DeviceForm)
 	if err != nil{
-		fmt.Println("NewInfoPubHandler :", err)
+		fmt.Println("NewIotPubHandler :", err)
 		repPayload = "err"
-		return
+	}
+	// post
+	err = PostWork(newDeviceForm.ClientId,createTransfer)
+	if err != nil {
+		repPayload = "err"
+
 	}
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, newDeviceForm.ClientId, 1)
 	err = Pub(pubTopic, []byte(repPayload))
 	if err != nil{
-		fmt.Println("NewInfoPubHandler :", err)
-		return
+		fmt.Println("NewIotPubHandler :", err)
 	}
 }
 
@@ -94,10 +135,20 @@ var UseIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Mes
 	if err != nil{
 		fmt.Println("RentIotPubHandler :", err)
 		repPayload = "err"
+		return
 	}
-	err = UseIot(userIotForm.User, userIotForm.Iot)
+	balanceTransfer,iotTransfer, err := UseIot(userIotForm.User, userIotForm.Iot)
 	if err != nil{
 		fmt.Println("RentIotPubHandler :", err)
+		repPayload = "err"
+	}
+	// post
+	err = PostWork(userIotForm.ClientId,balanceTransfer)
+	if err != nil {
+		repPayload = "err"
+	}
+	err = PostWork(userIotForm.ClientId,iotTransfer)
+	if err != nil {
 		repPayload = "err"
 	}
 	// pub
@@ -142,10 +193,40 @@ var BalanceInfoPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQT
 	if err != nil{
 		fmt.Println("BalanceInfoPubHandler :", err)
 	}
-	userBalanceOutput,_, err := OutputQuery(getUerBalanceForm.User)
+	//userBalanceOutput,userBalanceOutputResult, err := OutputQuery(getUerBalanceForm.User)
+	userBalanceOutput,userBalanceOutputResult, err := GetBalanceOutputs(getUerBalanceForm.User)
 	if err != nil{
 		fmt.Println("BalanceInfoPubHandler :", err)
+		errType := fmt.Sprint(err)
+		if errType == "noWallet"{
+			// 主钱包初始化
+			transferPrepare, err := InitWallet()
+			if err != nil{
+				fmt.Println("merge balance", err)
+			}
+			// post
+			err = PostWork(getUerBalanceForm.ClientId,transferPrepare)
+			if err != nil {
+				fmt.Println("post", err)
+			}
+		}
+
+		if errType == "unMerge"{
+			// 合并balance
+			//func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) (TransferPrepare,error)
+			transferPrepare, err := MergeBalanceAsset(getUerBalanceForm.User,userBalanceOutputResult)
+			if err != nil{
+				fmt.Println("merge balance", err)
+			}
+			// post
+			err = PostWork(getUerBalanceForm.ClientId,transferPrepare)
+			if err != nil {
+				fmt.Println("post", err)
+			}
+		}
+
 	}
+
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, getUerBalanceForm.ClientId, 1)
 	err = Pub(pubTopic, []byte(userBalanceOutput.Amount))
@@ -166,10 +247,15 @@ var UserBalancePubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQT
 		fmt.Println("UserBalancePubHandler :", err)
 		repPayload = "err"
 	}
-	err = UseBalance(useMoneyForm.AUser, useMoneyForm.BUser)
+	balanceTransfer, err := UseBalance(useMoneyForm.AUser, useMoneyForm.BUser)
 	if err != nil{
 		fmt.Println("UserBalancePubHandler :", err)
 		repPayload = "err"
+	}
+	// post
+	err = PostWork(useMoneyForm.ClientId,balanceTransfer)
+	if err != nil {
+		return
 	}
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, useMoneyForm.ClientId, 1)
