@@ -50,15 +50,19 @@ func TestTempGetUerBalanceForm(t *testing.T) {
 	// rep WeChat/post
 	//{"inputs": [{"owners_before": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"], "fulfills": null, "fulfillment": "pGSAICNu3miMPbgnonQOrcbGgUknVoZB1S3vKt5lGBSitv90gUCPN4bSg5xGzm_0c8CX88jqoy2qmXwEytgNiFWA0B_yxvs5dXQ71XihdZ675Fi6CJ2_NZezZOB1BMli0L4AJDoM"}], "outputs": [{"public_keys": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"], "condition": {"details": {"type": "ed25519-sha-256", "public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"}, "uri": "ni:///sha-256;t1GM7Bud9-p2hvzkPDn8AN8FRSc8azG8u0BG_KLswiE?fpt=ed25519-sha-256&cost=131072"}, "amount": "1000"}], "operation": "CREATE", "metadata": {"info": {"signer_nick_name": "Admin", "signer_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm", "recipient_nick_name": "Admin", "recipient_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm", "reason": "\u4e3b\u94b1\u5305\u521d\u59cb\u5316", "cost": "\u03e8", "time": "2019-05-17 02:36:07"}, "sn": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm.balance.main"}, "asset": {"data": {"info": {"owner_nick_name": "Admin", "owner_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm", "type": "balance", "id": "main"}, "sn": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm.balance.main"}}, "version": "2.0", "id": "c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}
 	// turn pub WeChat/balanceAssetId
-	// {"balance_asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}
+	// {"balance_asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"} // 113.6-2
+	// {"balance_asset_id":"d6464d9f40ef5656c307a7750a2ac6d2dc76835f7c0fd188ff6d866bd12eb7de"} // 1.107
 	// 余额1000
+	// 测试合并资产
+	// alice unmerge -> merge 100
+	// done
 }
 
 // 充值|提现
 func TestTempUseMoneyForm(t *testing.T) {
 	Byte, _ := json.Marshal(TempUseMoneyForm())
 	fmt.Println(string(Byte))
-	// smartServer/useBalance", UserBalancePubHandler
+	// smartServer/useBalance, UserBalancePubHandler
 	// 用户A充值50
 	// {"clientId":"WeChat","a_user":{"cost_type":"recharge","money":"50","nice_name":"alice","private_key":"88L2BJC9eNtSWhpPwWqqsLDRGz7aBPhuRNyfsWx4QxWR","public_key":"HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq","type":"balance","id":"main","asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"},"b_user":{"nice_name":"admin","private_key":"HwLCf9fbhm6BHTagY5aC1uVKR6sz57h7viuS8DUR9x34","public_key":"3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm","type":"balance","id":"main","asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}}
 	// postServer/post
@@ -68,5 +72,22 @@ func TestTempUseMoneyForm(t *testing.T) {
     // {"clientId":"WeChat","user":{"nice_name":"admin","private_key":"HwLCf9fbhm6BHTagY5aC1uVKR6sz57h7viuS8DUR9x34","public_key":"3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm","type":"balance","id":"main","asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}}
     // check alice 有50元
 	//{"clientId":"WeChat","user":{"nice_name":"admin","private_key":"88L2BJC9eNtSWhpPwWqqsLDRGz7aBPhuRNyfsWx4QxWR","public_key":"HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq","type":"balance","id":"main","asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}}
-
+	// 继续充值50后，admin 900，alice 50+50
+	// done
 }
+
+// 查看账单
+func TestTempGetUerBillsForm(t *testing.T) {
+	Byte, _ := json.Marshal(TempGetUerBillsForm())
+	fmt.Println(string(Byte))
+	// todo test
+	// smartServer/billInfo
+	//{"clientId":"WeChat","user":{"nice_name":"block","private_key":"HwLCf9fbhm6BHTagY5aC1uVKR6sz57h7viuS8DUR9x34","public_key":"3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm","type":"balance","id":"main","asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}}
+	// guess admin -> alice 50
+}
+
+// 创建设备
+// 查看设备
+// 租用
+// 归还
+// 账单

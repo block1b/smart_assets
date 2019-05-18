@@ -128,6 +128,7 @@ func TempGetUerBillsForm() GetUerBillsForm {
 				PublicKey:ADMIN_PUBLIC_KEY, // not null
 				Type:"balance",
 				Id:"main",
+				AssetId:ADMIN_BALANCE_ASSET_ID,
 			},
 		},
 	}

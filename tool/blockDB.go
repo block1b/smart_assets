@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const bigchaindb_addr  = "192.168.113.6:9984"
+const bigchaindb_addr  = "192.168.1.107:9984"
 
 // http get 查询 bigchaindb 的查询接口
 
@@ -64,6 +64,25 @@ func GetOutputs(publicKey,spent string)([]byte, error){
 	}
 	params.Set("public_key", publicKey)
 	params.Set("spent", spent)
+	//如果参数中有中文参数,这个方法会进行URLEncode
+	Url.RawQuery = params.Encode()
+	urlPath := Url.String()
+	resp, err := http.Get(urlPath)
+	defer resp.Body.Close()
+	s, err := ioutil.ReadAll(resp.Body)
+	if err != nil{
+		fmt.Println("read resp.Body ",err)
+		return nil,err
+	}
+	return s, nil
+}
+func GetOutputsAll(publicKey string)([]byte, error){
+	params := url.Values{}
+	Url, err := url.Parse("http://"+bigchaindb_addr+"/api/v1/outputs")
+	if err != nil {
+		panic(err.Error())
+	}
+	params.Set("public_key", publicKey)
 	//如果参数中有中文参数,这个方法会进行URLEncode
 	Url.RawQuery = params.Encode()
 	urlPath := Url.String()
@@ -288,7 +307,7 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) (TransferP
 			fmt.Println("get transaction",err)
 			return TransferPrepare{},err
 		}
-		var transaction Transaction
+		var transaction TilfilledTransaction
 		err = json.Unmarshal(transactionByte, &transaction)
 		if err != nil{
 			fmt.Println("unmarshal ",err)
@@ -317,7 +336,7 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) (TransferP
 	}
 	// 合并代币
 	recipients := []interface{}{Recipient{args.PublicKey,amount}.ToList()}
-	privateKeys := []string{ADMIN_PRIVATE_KEY}
+	privateKeys := []string{args.PrivateKey}
 	billInfo := BillInfo{
 		//SignerNickName string       `json:"signer_nick_name"`  // 发起人
 		//SignerPublicKey string      `json:"signer_public_key"`
@@ -338,6 +357,7 @@ func MergeBalanceAsset(args NickForm,outPutResults []GetOutputResult) (TransferP
 
 	transferPrepare := TransferPrepare{
 		Operation:operation,
+		Asset:Asset{Id:ADMIN_BALANCE_ASSET_ID},
 		Inputs:Inputs,
 		Recipients:recipients,
 		PrivateKeys:privateKeys,
@@ -423,7 +443,7 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) (TransferPrepare,error) {
 	var err error
 	var a_unspentOutput Output
 	var a_unspentOutputResult []GetOutputResult
-	var b_unspentOutput Output
+	//var b_unspentOutput Output
 	//var b_unspentOutputResult GetOutputResult
 	var inputs []Input
 	var recipients []interface{}
@@ -441,18 +461,18 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) (TransferPrepare,error) {
 			return TransferPrepare{},err
 		}
 	}
-	b_unspentOutput,_, err = GetBalanceOutputs(B)  // 收款方
-	if err != nil{
-		fmt.Println("asset query ", err)
-		errType := fmt.Sprint(err)
-		if errType == "zeroBalance"{
-			b_unspentOutput = Output{
-				Amount:"0",
-			}
-		}else {
-			return TransferPrepare{},err
-		}
-	}
+	//b_unspentOutput,_, err = GetBalanceOutputs(B)  // 收款方
+	//if err != nil{
+	//	fmt.Println("asset query ", err)
+	//	errType := fmt.Sprint(err)
+	//	if errType == "zeroBalance"{
+	//		b_unspentOutput = Output{
+	//			Amount:"0",
+	//		}
+	//	}else {
+	//		return TransferPrepare{},err
+	//	}
+	//}
 	input := Input{
 		//OwnersBefore []string `json:"owners_before"`
 		//Fulfills Fulfills     `json:"fulfills"`
@@ -468,9 +488,8 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) (TransferPrepare,error) {
 	// 重新分配代币
 	costMoney, err := strconv.Atoi(cost.Money)
 	aMoney, err := strconv.Atoi(a_unspentOutput.Amount)
-	bMoney, err := strconv.Atoi(b_unspentOutput.Amount)
 	a_amount := aMoney-costMoney
-	b_amount := bMoney+costMoney
+	b_amount := costMoney
 
 	// check amount 虽然不必要
 	if a_amount < 0 || b_amount <0{
@@ -763,10 +782,89 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 }
 
 // 获取个人历史账单 balanceSn
-// 同getMetadata() param:Sn return [{metadataresult}]
-func GetPersonBills(args NickForm)([]byte, error){
-	sn := args.Sn.String()
-	return GetMetadata(sn)
+func GetPersonBills(args NickForm)([]BillInfo, error){
+	// pubkey -》outputs -》transfer.metadata
+	// 改进自
+	//func OutputQuery(args NickForm) (Output,[]GetOutputResult, error) {
+	fmt.Println("select assetid", args.Sn.AssetId)
+	assetsByte, err := GetAsset(args.Sn.AssetId)
+	if err != nil{
+		fmt.Println("get asset ",err)
+		return []BillInfo{}, err
+	}
+	if assetsByte == nil{
+		// 无主钱包
+		//func InitWallet(args NickForm) (TransferPrepare,error)
+		return []BillInfo{}, errors.New("noWallet")
+	}
+	fmt.Println("assets", string(assetsByte))
+	var assets []GetAssetResult
+	err = json.Unmarshal(assetsByte, &assets)
+	if err != nil{
+		fmt.Println("unmarshal ",err)
+		return []BillInfo{}, err
+	}
+	if len(assets) == 0{
+		// 无主钱包
+		//func InitWallet(args NickForm) (TransferPrepare,error)
+		return []BillInfo{}, errors.New("noWallet")
+	}
+	asset_id := args.Sn.AssetId  // 老老实实用唯一标识就是了
+	fmt.Println("余额资产id", asset_id)
+	publicKey := args.Sn.PublicKey
+	outputsByte, err := GetOutputsAll(publicKey)
+	if err != nil{
+		fmt.Println("get output ",err)
+		return []BillInfo{}, err
+	}
+	if outputsByte == nil{
+		// 该用户无任何交易记录，此处是普通用户无交易
+		return []BillInfo{}, nil
+	}
+	var getOutPutResults []GetOutputResult
+	err = json.Unmarshal(outputsByte, &getOutPutResults)
+	if err != nil{
+		fmt.Println("unmarshal ",err)
+		return []BillInfo{}, err
+	}
+	if len(getOutPutResults) ==0 {
+		// 该用户无任何交易记录，此处是普通用户无交易
+		return []BillInfo{}, nil
+	}
+	var bills []BillInfo
+	// 未消耗outputs，过滤
+	for _, getOutPutResult := range getOutPutResults{
+		transactionByte, err := GetTransactionById(getOutPutResult.TransactionId)
+		if err != nil{
+			fmt.Println("get transaction",err)
+			return []BillInfo{}, err
+		}
+		var transaction TilfilledTransaction
+		err = json.Unmarshal(transactionByte, &transaction)
+		if err != nil{
+			fmt.Println("unmarshal ",err)
+			return []BillInfo{}, err
+		}
+		// 按asset_id过滤 还好struct自己解决了无Id的问题 CREATE 无id
+		if transaction.Asset.Id != "" && transaction.Asset.Id == asset_id ||
+			transaction.Asset.Id == "" && transaction.Id == asset_id{
+			fmt.Println("bill info")
+			metadataByte, err := json.Marshal(transaction.Metadata.Info)
+			if err != nil{
+				fmt.Println("marshl", err)
+				return []BillInfo{}, err
+			}
+			var bill BillInfo
+			err = json.Unmarshal(metadataByte, &bill)
+			if err != nil{
+				fmt.Println("unmarshl", err)
+				return []BillInfo{}, err
+			}
+			bills = append(bills, bill)
+		}
+	}
+
+	return bills,nil
 }
 
 // 查看设备信息
