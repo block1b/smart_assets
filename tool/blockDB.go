@@ -125,113 +125,9 @@ func GetTransactionById(transaction_id string) ([]byte,error) {
 //1. 新用户，无余额资产，管理员创建该用户的余额资产，初始化为0，重新查询。
 //2. 余额分散，使用该用户账号合并余额资产，重新查询。
 // 根据sn查询 unspet balance|iot
+// up 只用于查询设备，默认只会有1个结果
 func OutputQuery(args NickForm) (Output,[]GetOutputResult, error) {
-	sn := args.Sn
-	snStr := sn.String()
-	fmt.Println("select sn ", snStr)
-	assetsByte, err := GetAsset(snStr)
-	if err != nil{
-		fmt.Println("get asset ",err)
-		return Output{},[]GetOutputResult{}, err
-	}
-	if assetsByte == nil{
-		// 无数据
-		if args.Sn.Type == "balance"{
-			// 新建资产
-			err = errors.New("unCreateBalance")
-			return Output{},[]GetOutputResult{}, err
-		}else {
-			return Output{},[]GetOutputResult{}, err
-		}
-	}
-	fmt.Println("assets", string(assetsByte))
-	var assets []GetAssetResult
-	err = json.Unmarshal(assetsByte, &assets)
-	if err != nil{
-		fmt.Println("unmarshal ",err)
-		return Output{},[]GetOutputResult{}, err
-	}
-	//asset_id := assets[0].Id  // 无用
-	asset_id := args.Sn.AssetId  // 老老实实用唯一标识就是了
-
-	fmt.Println("余额资产id", asset_id)
-	publicKey := sn.PublicKey
-	outputsByte, err := GetOutputs(publicKey,"false")
-	if err != nil{
-		fmt.Println("get asset ",err)
-		return Output{},[]GetOutputResult{}, err
-	}
-	if outputsByte == nil{
-		// 无数据
-		if args.Sn.Type == "balance"{
-			// 新建资产 todo 返回个0就行了
-			err = errors.New("zeroBalance")
-			return Output{},[]GetOutputResult{}, err
-		}else {
-			return Output{},[]GetOutputResult{}, err
-		}
-	}
-	var getOutPutResults []GetOutputResult
-	err = json.Unmarshal(outputsByte, &getOutPutResults)
-	if err != nil{
-		fmt.Println("unmarshal ",err)
-		return Output{},[]GetOutputResult{}, err
-	}
-	var unSpentOutputResults []GetOutputResult
-	var amount string  // 坑，amount输出是string，输入的时候是int
-	var outPut Output  // 单例返回
-	// 包括balance和iot的未消耗outputs，过滤
-	for _, getOutPutResult := range getOutPutResults{
-		transactionByte, err := GetTransactionById(getOutPutResult.TransactionId)
-		if err != nil{
-			fmt.Println("get transaction",err)
-			return Output{},[]GetOutputResult{}, err
-		}
-		var transaction TilfilledTransaction
-		err = json.Unmarshal(transactionByte, &transaction)
-		if err != nil{
-			fmt.Println("unmarshal ",err)
-			return Output{},[]GetOutputResult{}, err
-		}
-		// 按asset_id过滤 还好struct自己解决了无Id的问题 CREATE 无id
-		if transaction.Asset.Id != "" && transaction.Asset.Id == asset_id ||
-			transaction.Asset.Id == "" && transaction.Id == asset_id{
-			fmt.Println("unspent output")
-			unSpentOutputResults = append(unSpentOutputResults, getOutPutResult)
-			amount = transaction.Outputs[getOutPutResult.OutputIndex].Amount  // 只在 unSpentOutputResults len=1 有效
-			outPut = transaction.Outputs[getOutPutResult.OutputIndex]
-		}
-	}
-	unSpentOutputsLen := len(unSpentOutputResults)
-	switch unSpentOutputsLen {
-	case 0:
-		fmt.Println("无记录")
-		// 如果是设备查询，直接返回空
-		if args.Type == "iot"{
-			return Output{},[]GetOutputResult{}, err
-		}
-		// 新建资产
-		err = errors.New("zeroBalance")
-		return Output{},[]GetOutputResult{}, err
-	case 1:
-		fmt.Println("该用户资产可用数量为", amount ,outPut.Amount)
-		return outPut,unSpentOutputResults, nil
-	default:
-		if args.Type == "balance"{
-
-			fmt.Println("该用于余额token需要合并")
-			// 合并用户资产
-			//err = MergeBalanceAsset(args, unSpentOutputResults)
-			// 新建资产
-			err = errors.New("unMergeBalance")
-			return Output{},unSpentOutputResults, err
-		}else {
-			// 理论上只有balance需要合并
-			fmt.Println("bad request")
-			return Output{},[]GetOutputResult{},nil
-		}
-	}
-	//return Output{},nil
+	return GetBalanceOutputs(args)
 }
 
 // 创建余额资产;
@@ -594,7 +490,7 @@ func CreateDevice(deviceForm DeviceForm) (TransferPrepare,error) {
 	transferPrepare := TransferPrepare{
 		Operation:operation,
 		Asset:asset,
-		Signers:ADMIN_PUBLIC_KEY,
+		Signers:args.Sn.PublicKey,
 		Recipients:recipients,
 		PrivateKeys:privateKeys,
 		Metadata:metadata,
@@ -659,7 +555,7 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 		fmt.Println("get transaction",err)
 		return TransferPrepare{},TransferPrepare{},err
 	}
-	var transaction Transaction
+	var transaction TilfilledTransaction
 	err = json.Unmarshal(transactionByte, &transaction)
 	if err != nil{
 		fmt.Println("unmarshal ",err)
@@ -677,11 +573,8 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 		fmt.Println("unmarshal ",err)
 		return TransferPrepare{},TransferPrepare{},err
 	}
-	if oldrentInfo.UserPublicKey != user.PublicKey{
-		// 非授权用户操作；本来应该直接把设备转给user的，就没有这种问题了 todo
-		return TransferPrepare{},TransferPrepare{},errors.New("bad user : permission denied")
-	}
-	// 判断status转换逻辑
+
+	// 判断status转换逻辑,有限状态机
 	efan := fsm.Init(fsm.FSMState(oldrentInfo.Status))
 	efan.Call(fsm.FSMEvent(iotForm.Status))  // 其实该用event 不是state
 	newStatus := string(efan.GetState())
@@ -692,8 +585,12 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 	userNiceName := user.NiceName
 	userPublicKey := user.PublicKey
 	var balanceTransfer TransferPrepare
-	// 归还设备操作计算时间
+	// 先判断操作做事件（rent，return）
 	if iotForm.Status == "Return"{
+		if oldrentInfo.UserPublicKey != user.PublicKey{
+			// 非授权用户操作；本来应该直接把设备转给user的，就没有这种问题了
+			return TransferPrepare{},TransferPrepare{},errors.New("bad user : permission denied")
+		}
 		// 计算花费时间
 		startTime,err := time.Parse("2006-01-02 03:04:05", oldrentInfo.StartTime)
 		if err != nil{
@@ -712,6 +609,7 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 				PublicKey: iot.Sn.PublicKey,
 				Type: "balance",
 				Id: "main",
+				AssetId:user.Sn.AssetId,
 			},
 		}
 		// 暂定消费金额为 costTime*Ruler
@@ -722,7 +620,9 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 			fmt.Println("Atoi ",err)
 			return TransferPrepare{},TransferPrepare{},err
 		}
-		money := string(c*r)
+		//money := string(c*r)
+		fmt.Println("收费: ", c*r )
+		money := "2"  // 用于测试，每次只消耗2元
 		cost := CostMoney{
 			//CostType string `json:"cost_type"`
 			//Money string `json:"money"`
@@ -736,7 +636,14 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 		// 支付完成
 		userNiceName = iotForm.NiceName
 		userPublicKey = iotForm.PublicKey
-	}  
+	}
+	// 若拥有者设置设备状态 event
+	if iotForm.Status == "Close" || iotForm.Status == "Open"{
+		fmt.Println("设置设备可用状态，检查用户权限")
+		if oldrentInfo.OwnerPublicKey != user.PublicKey{
+			return TransferPrepare{},TransferPrepare{},errors.New("bad user : permission denied")
+		}
+	}
 	
 	rentInfo := RentInfo{
 		//DeviceId string `json:"device_id"`  // 设备号
@@ -765,13 +672,14 @@ func UseIot(user NickForm, iotForm DeviceForm) (TransferPrepare,TransferPrepare,
 
 	transferPrepare := TransferPrepare{
 		Operation:operation,
+		Asset:Asset{Id:iot.Sn.AssetId},
 		Inputs:inputs,
 		Recipients:recipients,
 		PrivateKeys:privateKeys,
 		Metadata:metadata,
 	}
 
-	fmt.Println("post :", transferPrepare)
+	fmt.Println("post :", balanceTransfer,transferPrepare)
 	// 提交给postServer,路由中添加接收处理，响应前端
 	//err = PostWork(transferPrepare)
 	//if err != nil {
@@ -871,7 +779,7 @@ func GetPersonBills(args NickForm)([]BillInfo, error){
 // OutputQuery -> outputResult(transferId)
 // transferById -> assetInfo，metadataInfo
 func GetIotInfo(args NickForm) (DeviceForm, error) {
-	_, unspentOutputResult, err := OutputQuery(args)
+	_, unspentOutputResult, err := OutputQuery(args)  // 获取设备可用输出
 	if err!= nil{
 		return DeviceForm{}, errors.New("bad device : device un define")
 	}
@@ -879,7 +787,7 @@ func GetIotInfo(args NickForm) (DeviceForm, error) {
 	if err!= nil{
 		return DeviceForm{}, errors.New("GetTransactionById : no result")
 	}
-	var transaction Transaction
+	var transaction TilfilledTransaction
 	err = json.Unmarshal(transactionByte, &transaction)
 	if err != nil{
 		fmt.Println("unmarshal ",err)
@@ -887,7 +795,19 @@ func GetIotInfo(args NickForm) (DeviceForm, error) {
 	}
 
 	// 抽取 asset，metadata中的info 部分字段用于展示
-	iotAssetInfo := transaction.Asset.Data.Info
+	// asset 应该通过assetid直接查询
+	assetsByte, err := GetAsset(args.Sn.AssetId)
+	if err != nil{
+		return DeviceForm{}, err
+	}
+	var assets []Asset
+	err = json.Unmarshal(assetsByte, &assets)
+	if len(assets) < 1 {
+		// 冗余
+		return DeviceForm{}, errors.New("noAsset")
+	}
+	iotAssetInfo := assets[0].Data.Info
+	//iotAssetInfo := transaction.Asset.Data.Info
 	iotmetadataInfo := transaction.Metadata.Info
 	iab, err := json.Marshal(iotAssetInfo)
 	imb, err := json.Marshal(iotmetadataInfo)

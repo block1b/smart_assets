@@ -38,6 +38,7 @@ func TempGetIotInfoForm() GetIotInfoForm {
 				PublicKey:ADMIN_PUBLIC_KEY, // not null
 				Type:"iot",
 				Id:"clock0",
+				AssetId:ADMIN_IOT_ASSET_ID,
 			},
 		},
 	}
@@ -88,26 +89,28 @@ func TempUserIotForm() UserIotForm {
 		//Iot DeviceForm `json:"iot"`
 		ClientId:"WeChat",
 		User:NickForm{
-			NiceName:"block",
-			PrivateKey:ADMIN_PRIVATE_KEY,
+			NiceName:"alice",
+			PrivateKey:alice_private_key,
 			Sn:Sn{
-				PublicKey:ADMIN_PUBLIC_KEY, // not null
+				PublicKey:alice_public_key, // not null
 				Type:"balance",
 				Id:"main",
+				AssetId:ADMIN_BALANCE_ASSET_ID,
 			},
 		},
 		Iot:DeviceForm{
 			DeviceName:"clock0",
 			DeviceInfo:"shareParking",
-			Status:"rent",
+			Status:"Return",  // [Rent|Return]
 			Ruler:"5",
 			NickForm:NickForm{
-				NiceName:"block",
+				NiceName:"admin",
 				PrivateKey:ADMIN_PRIVATE_KEY,
 				Sn:Sn{
 					PublicKey:ADMIN_PUBLIC_KEY, // not null
 					Type:"iot",
 					Id:"clock0",
+					AssetId:ADMIN_IOT_ASSET_ID,
 				},
 			},
 		},
@@ -122,7 +125,7 @@ func TempGetUerBillsForm() GetUerBillsForm {
 		//User NickForm `json:"user"`
 		ClientId:"WeChat",
 		User:NickForm{
-			NiceName:"block",
+			NiceName:"admin",
 			PrivateKey:ADMIN_PRIVATE_KEY,
 			Sn:Sn{
 				PublicKey:ADMIN_PUBLIC_KEY, // not null
@@ -142,9 +145,9 @@ func TempGetUerBalanceForm() GetUerBalanceForm  {
 		ClientId:"WeChat",
 		User:NickForm{
 			NiceName:"admin",
-			PrivateKey:alice_private_key,
+			PrivateKey:ADMIN_PRIVATE_KEY,
 			Sn:Sn{
-				PublicKey:alice_public_key, // not null
+				PublicKey:ADMIN_PUBLIC_KEY, // not null
 				Type:"balance",
 				Id:"main",
 
@@ -246,5 +249,41 @@ func TempTransferPrepare() TransferPrepare {
 		//PrivateKeys []string `json:"private_keys"`
 		//Metadata Data `json:"metadata"`
 		Signers:"block",
+	}
+}
+
+// 更改设备共享状态
+func TempUpdateIot() UserIotForm {
+	return UserIotForm{
+		//ClientId string `json:"clientId"`
+		//User NickForm `json:"user"`
+		//Iot DeviceForm `json:"iot"`
+		ClientId:"WeChat",
+		User:NickForm{
+			NiceName:"admin",
+			PrivateKey:ADMIN_PUBLIC_KEY,
+			Sn:Sn{
+				PublicKey:ADMIN_PUBLIC_KEY, // not null
+				Type:"balance",
+				Id:"main",
+				AssetId:ADMIN_BALANCE_ASSET_ID,
+			},
+		},
+		Iot:DeviceForm{
+			DeviceName:"clock0",
+			DeviceInfo:"shareParking",
+			Status:"Open",  // [Close|Open]
+			Ruler:"5",
+			NickForm:NickForm{
+				NiceName:"admin",
+				PrivateKey:ADMIN_PRIVATE_KEY,
+				Sn:Sn{
+					PublicKey:ADMIN_PUBLIC_KEY, // not null
+					Type:"iot",
+					Id:"clock0",
+					AssetId:ADMIN_IOT_ASSET_ID,
+				},
+			},
+		},
 	}
 }

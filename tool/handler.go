@@ -124,7 +124,7 @@ var NewIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Mes
 	}
 }
 
-// 租用设备
+// 租用设备（归还）
 //RentIotPubHandler
 var UseIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	fmt.Printf("[RentIotPubHandler] TOPIC: %s MSG: %s\n", msg.Topic(), msg.Payload())
@@ -142,11 +142,16 @@ var UseIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Mes
 		fmt.Println("RentIotPubHandler :", err)
 		repPayload = "err"
 	}
-	// post
-	err = PostWork(userIotForm.ClientId,balanceTransfer)
-	if err != nil {
-		repPayload = "err"
+	fmt.Println(balanceTransfer, iotTransfer)
+	if userIotForm.Iot.Status == "Return"{
+		fmt.Println("归还支付")
+		// 只有归还操作，才有金钱交易
+		err = PostWork(userIotForm.ClientId,balanceTransfer)
+		if err != nil {
+			repPayload = "err"
+		}
 	}
+	// post
 	err = PostWork(userIotForm.ClientId,iotTransfer)
 	if err != nil {
 		repPayload = "err"
@@ -172,9 +177,13 @@ var BillInfoPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.M
 	if err != nil{
 		fmt.Println("BillInfoPubHandler :", err)
 	}
-	userBillsByte, err := GetPersonBills(getUerBillsForm.User)
+	userBills, err := GetPersonBills(getUerBillsForm.User)
 	if err != nil{
 		fmt.Println("BillInfoPubHandler :", err)
+	}
+	userBillsByte, err := json.Marshal(userBills)
+	if err != nil{
+		fmt.Println("marshal :", err)
 	}
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, getUerBillsForm.ClientId, 1)
