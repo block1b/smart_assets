@@ -32,7 +32,7 @@ func TempGetIotInfoForm() GetIotInfoForm {
 				//Id string `json:"id"`
 		ClientId:"WeChat",
 		Iot:NickForm{
-			NiceName:"block",
+			NiceName:"admin",
 			PrivateKey:ADMIN_PRIVATE_KEY,  // may null
 			Sn:Sn{
 				PublicKey:ADMIN_PUBLIC_KEY, // not null

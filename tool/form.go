@@ -66,7 +66,13 @@ type UseMoneyForm struct {
 	BUser NickForm `json:"b_user"`
 }
 
+// post请求
 type ClientIdTransfer struct {
 	ClientId string `json:"clientId"`
 	TransferData TransferPrepare `json:"transferData"`
 }
+
+// 余额响应
+type BalanceAmount struct {
+	Amount string `json:"amount"`
+} 

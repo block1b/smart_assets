@@ -436,3 +436,54 @@ todo 详细分析租用和归还的操作差异
 设备状态（禁用|可用），拥有者（拥有者）
 
 状态通过状态机确认，只是许哟啊加一个用户权限检查;
+
+2019年5月20日19点56分
+
+hahaha第一次查重18%
+就剩前端了
+本地需要记录的资产,
+钱包assetId，拥有设备的assetIds
+{
+    balance_asset_id:1234
+    iot_asset_ids:[]
+}
+
+clientid,nicename这两做全局变量
+
+看js 更新list Array() push,就ok了。
+文件内容也缓存全局好了。
+
+2019年5月21日09点25分
+点击扫一扫，通过二维码获取deviceAssetID，
+{"clientId":"WeChat","iot":{"nice_name":"block","private_key":"HwLCf9fbhm6BHTagY5aC1uVKR6sz57h7viuS8DUR9x34","public_key":"3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm","type":"iot","id":"clock0","asset_id":"027e9943c4f18f1873b00b08a02477d036ebe93cc98d8a551389ed252fe95ed1"}}
+ClientId:"WeChat", done
+PrivateKey:ADMIN_PRIVATE_KEY, 
+PublicKey:ADMIN_PUBLIC_KEY, 
+AssetId:ADMIN_IOT_ASSET_ID, done
+
+果然再所有业务之前，还是需要先把密钥缓存一下。done
+
+2019年5月21日22点00分
+/balanceAssetId
+/iotAssetId
+前端监听这两个主题，收到后就更新，
+本地文件一份，缓存一份，收到balalnce就全量更新，收到iot增量更新。
+balance这个理论上都一样，不会改变，iot会由多个，得用[]
+那就分两个文件好了。
+
+2019年5月22日09点03分
+主页面加载一次，收到flush主题后，保存后加载一次。
+增加了资产刷新接口。但是觉得会是个坑。。。
+
+10点47分 文件记录done，该做模板了。
+
+模板直接在map上修改字段好了。
+new mapTemp
+set key=value
+应该没什么问题，写个demo页面看一下。
+done，没什么问题，修改数据模板中的字段即可。
+
+还应该由一个初始化前端的脚本，直接手工初始化一个文件好了。
+把钱包和设备先放一份，用于演示。done
+
+数据模板，todo

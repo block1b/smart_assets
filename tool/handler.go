@@ -235,10 +235,15 @@ var BalanceInfoPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQT
 		}
 
 	}
-
+	// 封装 amount
+	amount := BalanceAmount{Amount:userBalanceOutput.Amount}
+	amountByte, err := json.Marshal(amount)
+	if err != nil{
+		fmt.Println("marshal", err)
+	}
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, getUerBalanceForm.ClientId, 1)
-	err = Pub(pubTopic, []byte(userBalanceOutput.Amount))
+	err = Pub(pubTopic, amountByte)
 	if err != nil{
 		fmt.Println("BalanceInfoPubHandler :", err)
 	}
