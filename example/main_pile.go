@@ -17,7 +17,7 @@ func main() {
 	// 初始化api
 	err := InitPileApi()
 	if err != nil {
-		fmt.Println("初始化API失败")
+		fmt.Println("初始化pi API失败")
 		wg.Done()
 	}
 	wg.Wait()

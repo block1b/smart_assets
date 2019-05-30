@@ -486,4 +486,183 @@ done，没什么问题，修改数据模板中的字段即可。
 还应该由一个初始化前端的脚本，直接手工初始化一个文件好了。
 把钱包和设备先放一份，用于演示。done
 
-数据模板，todo
+数据模板，基本上几个数据拿到够，改map字段即可。
+
+2019年5月25日14点18分
+
+代币合并测试，如何展现，就把交易记录展示一下好了。
+
+```json5
+    {
+        "inputs": [
+            {
+                "owners_before": [
+                    "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq"
+                ],
+                "fulfills": {
+                    "transaction_id": "5286da424ad18021513a7449666ac818d951dd0b51d31fb5544d44dfb860213a",
+                    "output_index": 0
+                },
+                "fulfillment": "pGSAIPVZtx4o_rOegIGfPcYb4EaFDHeiZeOMo33DyRobp6QIgUAHNh88PeSqANC_IWyCA-qWN37jjZRYF_HAv2O8I1qFXR-c_yy1aJ3xnls6O53GwpZ0sxmZnJYCTiPNTCCh-6IA"
+            }
+        ],
+        "outputs": [
+            {
+                "public_keys": [
+                    "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq"
+                ],
+                "condition": {
+                    "details": {
+                        "type": "ed25519-sha-256",
+                        "public_key": "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq"
+                    },
+                    "uri": "ni:///sha-256;gq2QbZZEcAzcCuCv4xicDCYQ_0RmN09VLSH6t2H0pKQ?fpt=ed25519-sha-256&cost=131072"
+                },
+                "amount": "98"
+            },
+            {
+                "public_keys": [
+                    "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"
+                ],
+                "condition": {
+                    "details": {
+                        "type": "ed25519-sha-256",
+                        "public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"
+                    },
+                    "uri": "ni:///sha-256;t1GM7Bud9-p2hvzkPDn8AN8FRSc8azG8u0BG_KLswiE?fpt=ed25519-sha-256&cost=131072"
+                },
+                "amount": "2"
+            }
+        ],
+        "operation": "TRANSFER",
+        "metadata": {
+            "info": {
+                "signer_nick_name": "alice",
+                "signer_public_key": "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq",
+                "recipient_nick_name": "admin",
+                "recipient_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm",
+                "reason": "payment",
+                "cost": "2",
+                "time": "2019-05-19 04:40:21"
+            },
+            "sn": "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq.balance.main"
+        },
+        "asset": {
+            "id": "d6464d9f40ef5656c307a7750a2ac6d2dc76835f7c0fd188ff6d866bd12eb7de"
+        },
+        "version": "2.0",
+        "id": "d3513f4195792742c2434cbc18f835c63524f74bf19663731be4af04e63f265a"
+    },
+    {
+        "inputs": [
+            {
+                "owners_before": [
+                    "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"
+                ],
+                "fulfills": {
+                    "transaction_id": "00a37b6b3f0c6bae2d5aff197d6a71273ff82bbb457ab34dcae6ae92fcf92911",
+                    "output_index": 0
+                },
+                "fulfillment": "pGSAICNu3miMPbgnonQOrcbGgUknVoZB1S3vKt5lGBSitv90gUBcU9PdezrYZxsrnj3-FZSPPH9DEbC4fN677GR75FRXjjq1fP8ff7mmtZOIGJi90e7OrbpU6bD-fVycVGwYyM4E"
+            }
+        ],
+        "outputs": [
+            {
+                "public_keys": [
+                    "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"
+                ],
+                "condition": {
+                    "details": {
+                        "type": "ed25519-sha-256",
+                        "public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"
+                    },
+                    "uri": "ni:///sha-256;t1GM7Bud9-p2hvzkPDn8AN8FRSc8azG8u0BG_KLswiE?fpt=ed25519-sha-256&cost=131072"
+                },
+                "amount": "900"
+            },
+            {
+                "public_keys": [
+                    "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq"
+                ],
+                "condition": {
+                    "details": {
+                        "type": "ed25519-sha-256",
+                        "public_key": "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq"
+                    },
+                    "uri": "ni:///sha-256;gq2QbZZEcAzcCuCv4xicDCYQ_0RmN09VLSH6t2H0pKQ?fpt=ed25519-sha-256&cost=131072"
+                },
+                "amount": "50"
+            }
+        ],
+        "operation": "TRANSFER",
+        "metadata": {
+            "info": {
+                "signer_nick_name": "Admin",
+                "signer_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm",
+                "recipient_nick_name": "alice",
+                "recipient_public_key": "HWkENox4DM4Tp3qSfYW8igndpog9GpKFzB7Tp7yXgpBq",
+                "reason": "recharge",
+                "cost": "50",
+                "time": "2019-05-18 03:41:07"
+            },
+            "sn": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm.balance.main"
+        },
+        "asset": {
+            "id": "d6464d9f40ef5656c307a7750a2ac6d2dc76835f7c0fd188ff6d866bd12eb7de"
+        },
+        "version": "2.0",
+        "id": "c5aabe9fe7230ada547c0288ed08a7b61d8abaf421571b43033a640af3da09d1"
+    },
+    
+```
+
+```
+    {
+            "inputs": [
+                {
+                    "owners_before": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"],
+                    "fulfills": {
+                        "transaction_id": "c5aabe9fe7230ada547c0288ed08a7b61d8abaf421571b43033a640af3da09d1",
+                        "output_index": 0 },
+                    "fulfillment": "pGSAICNu3miMPbgnonQOrcbGgUknVoZB1S3vKt5lGBSitv90gUBLI5foDk7lr1OMVsgFL5dgDjMVjW-gGkF03UVub1XQzm1e80cPralrVk-4q6O1pnHy862A0RgSEFcm7w8AI6IN"
+                },
+                {
+                    "owners_before": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"],
+                    "fulfills": {
+                        "transaction_id": "d3513f4195792742c2434cbc18f835c63524f74bf19663731be4af04e63f265a",
+                        "output_index": 1 },
+                    "fulfillment": "pGSAICNu3miMPbgnonQOrcbGgUknVoZB1S3vKt5lGBSitv90gUBv1O0Bt9Lu5HDJ4-lIanRSkGmnBN0L5ksnRoay7UETNAtjFn0p4ZH3P35H_Zag_vXrorsXC3m-EVBRbpDVEqQO"
+                }
+            ],
+            "outputs": [{
+                    "public_keys": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"],
+                    "condition": {
+                        "details": {
+                            "type": "ed25519-sha-256",
+                            "public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"
+                        },
+                        "uri": "ni:///sha-256;t1GM7Bud9-p2hvzkPDn8AN8FRSc8azG8u0BG_KLswiE?fpt=ed25519-sha-256&cost=131072"
+                    },
+                    "amount": "902"
+                }],
+            "operation": "TRANSFER",
+            "metadata": {
+                "info": {
+                    "signer_nick_name": "admin",
+                    "signer_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm",
+                    "recipient_nick_name": "admin",
+                    "recipient_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm",
+                    "reason": "合并余额",
+                    "cost": "Ά",
+                    "time": "2019-05-19 04:43:42"
+                },
+                "sn": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm.balance.main"
+            },
+            "asset": {
+                "id": "d6464d9f40ef5656c307a7750a2ac6d2dc76835f7c0fd188ff6d866bd12eb7de"
+            },
+            "version": "2.0",
+            "id": "3da2381fcffad7d65bbf59177a5112cd21f437cdfecb89eae5180a5fb2d1f830"
+    }
+```
+

@@ -99,6 +99,8 @@ func TestTempGetIotInfoForm(t *testing.T) {
 	// rep 设备名，设备信息，状态，收费规则
 	//{"device_name":"clock0","device_info":"shareParking","status":"CanUse","ruler":"5","nick_form":{"nice_name":"","private_key":"","public_key":"","type":"","id":"","asset_id":""}}
 	// done
+	// 前端调试
+	//{"clientId":"WeChat","iot":{"nice_name":"block","private_key":"HwLCf9fbhm6BHTagY5aC1uVKR6sz57h7viuS8DUR9x34","public_key":"3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm","type":"iot","id":"clock0","asset_id":"027e9943c4f18f1873b00b08a02477d036ebe93cc98d8a551389ed252fe95ed1"}}
 }
 // 租用
 func TestTempUserIotForm(t *testing.T) {
