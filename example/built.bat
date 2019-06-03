@@ -1,3 +1,3 @@
 set GOARCH=arm
 set GOOS=linux
-go build gpioDemo.go
+go build main_pile.go

@@ -51,7 +51,7 @@ func TestTempGetUerBalanceForm(t *testing.T) {
 	//{"inputs": [{"owners_before": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"], "fulfills": null, "fulfillment": "pGSAICNu3miMPbgnonQOrcbGgUknVoZB1S3vKt5lGBSitv90gUCPN4bSg5xGzm_0c8CX88jqoy2qmXwEytgNiFWA0B_yxvs5dXQ71XihdZ675Fi6CJ2_NZezZOB1BMli0L4AJDoM"}], "outputs": [{"public_keys": ["3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"], "condition": {"details": {"type": "ed25519-sha-256", "public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm"}, "uri": "ni:///sha-256;t1GM7Bud9-p2hvzkPDn8AN8FRSc8azG8u0BG_KLswiE?fpt=ed25519-sha-256&cost=131072"}, "amount": "1000"}], "operation": "CREATE", "metadata": {"info": {"signer_nick_name": "Admin", "signer_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm", "recipient_nick_name": "Admin", "recipient_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm", "reason": "\u4e3b\u94b1\u5305\u521d\u59cb\u5316", "cost": "\u03e8", "time": "2019-05-17 02:36:07"}, "sn": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm.balance.main"}, "asset": {"data": {"info": {"owner_nick_name": "Admin", "owner_public_key": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm", "type": "balance", "id": "main"}, "sn": "3PKKhLTbaFSjpjdEtNYqPTSrgp17Vur25NwVjQNKK7Hm.balance.main"}}, "version": "2.0", "id": "c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"}
 	// turn pub WeChat/balanceAssetId
 	// {"balance_asset_id":"c279f15ce6414a8c6e6e07313f93cf5c124caeeb30bf5a4ab8564c3fcdc626e3"} // 113.6-2
-	// {"balance_asset_id":"d6464d9f40ef5656c307a7750a2ac6d2dc76835f7c0fd188ff6d866bd12eb7de"} // 1.107
+	// {"balance_asset_id":"d6464d9f40ef5656c307a7750a2ac6d2dc76835f7c0fd188ff6d866bd12eb7de"} // 0.111
 	// 余额1000
 	// 测试合并资产
 	// alice unmerge -> merge 100

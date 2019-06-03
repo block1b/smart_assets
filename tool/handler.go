@@ -104,23 +104,26 @@ var NewIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Mes
 	if err != nil{
 		fmt.Println("NewIotPubHandler :", err)
 		repPayload = "err"
+		return
 	}
 	createTransfer,err := CreateDevice(newDeviceForm.DeviceForm)
 	if err != nil{
 		fmt.Println("NewIotPubHandler :", err)
 		repPayload = "err"
+		return
 	}
 	// post
 	err = PostWork(newDeviceForm.ClientId,createTransfer)
 	if err != nil {
 		repPayload = "err"
-
+		return
 	}
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, newDeviceForm.ClientId, 1)
 	err = Pub(pubTopic, []byte(repPayload))
 	if err != nil{
 		fmt.Println("NewIotPubHandler :", err)
+		return
 	}
 }
 
@@ -141,6 +144,7 @@ var UseIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Mes
 	if err != nil{
 		fmt.Println("RentIotPubHandler :", err)
 		repPayload = "err"
+		return
 	}
 	fmt.Println(balanceTransfer, iotTransfer)
 	if userIotForm.Iot.Status == "Return"{
@@ -149,19 +153,31 @@ var UseIotPubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Mes
 		err = PostWork(userIotForm.ClientId,balanceTransfer)
 		if err != nil {
 			repPayload = "err"
+			return
 		}
 	}
 	// post
 	err = PostWork(userIotForm.ClientId,iotTransfer)
 	if err != nil {
 		repPayload = "err"
+		return
 	}
 	// pub
 	pubTopic := strings.Replace(msg.Topic(), CLIENTID, userIotForm.ClientId, 1)
 	err = Pub(pubTopic, []byte(repPayload))
 	if err != nil{
 		fmt.Println("IotInfoPubHandler :", err)
+		return
 	}
+	if userIotForm.Iot.Status == "Rent"{
+		// pub open clock
+		err = Pub("clock0/openClock", []byte(repPayload))
+		if err != nil{
+			fmt.Println("IotOpen :", err)
+			return
+		}
+	}
+
 }
 
 // 修改设备状态
@@ -260,11 +276,19 @@ var UserBalancePubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQT
 	if err != nil{
 		fmt.Println("UserBalancePubHandler :", err)
 		repPayload = "err"
+		return
 	}
 	balanceTransfer, err := UseBalance(useMoneyForm.AUser, useMoneyForm.BUser)
 	if err != nil{
-		fmt.Println("UserBalancePubHandler :", err)
-		repPayload = "err"
+		errType := fmt.Sprint(err)
+		if errType == "unMerge"{
+			fmt.Println("UserBalancePubHandler merge post")
+			// post
+		}else {
+			fmt.Println("UserBalancePubHandler :", err)
+			repPayload = "err"
+			return
+		}
 	}
 	// post
 	err = PostWork(useMoneyForm.ClientId,balanceTransfer)
@@ -276,5 +300,6 @@ var UserBalancePubHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQT
 	err = Pub(pubTopic, []byte(repPayload))
 	if err != nil{
 		fmt.Println("IotInfoPubHandler :", err)
+		return
 	}
 }

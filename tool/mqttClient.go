@@ -9,12 +9,12 @@ import (
 
 var MqttClient MQTT.Client
 
-const CLIENTID  = "smartServer"
+//const CLIENTID  = "smartServer"
 
 
-func Init()  {
-	opts := MQTT.NewClientOptions().AddBroker("tcp://192.168.1.107:1883")
-	opts.SetClientID(CLIENTID)
+func Init(clientId string)  {
+	opts := MQTT.NewClientOptions().AddBroker("tcp://"+MQTT_BROKER_ADDR)
+	opts.SetClientID(clientId)
 	opts.SetDefaultPublishHandler(DefaultPublishHandler)
 	opts.SetOnConnectHandler(OnConnectHandler)
 	opts.SetConnectionLostHandler(ConnectionLostHandler)

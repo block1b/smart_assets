@@ -11,7 +11,7 @@ func main() {
 	var wg sync.WaitGroup
 	// 初始化 mqtt client
 	log.Println("连接mqtt broker")
-	Init()
+	Init(CLIENTID)
 	wg.Add(1)
 	// 初始化api
 	log.Println("注册api")

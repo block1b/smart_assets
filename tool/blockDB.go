@@ -2,8 +2,8 @@ package tool
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/influxdata/influxdb/kit/errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const bigchaindb_addr  = "192.168.1.107:9984"
+//const bigchaindb_addr  = "192.168.1.107:9984"
 
 // http get 查询 bigchaindb 的查询接口
 
@@ -353,6 +353,16 @@ func BalanceTransfer(A, B NickForm, cost CostMoney) (TransferPrepare,error) {
 			a_unspentOutput = Output{
 				Amount:"0",
 			}
+		}else if errType == "unMerge"{
+			fmt.Println("merge A first")
+			// 支付方资产分散需要先合并
+			transferPrepare, err := MergeBalanceAsset(A,a_unspentOutputResult)
+			if err != nil{
+				fmt.Println("merge balance prepare", err)
+				return TransferPrepare{},err
+			}
+			return transferPrepare, err
+
 		}else {
 			return TransferPrepare{},err
 		}
@@ -782,6 +792,9 @@ func GetIotInfo(args NickForm) (DeviceForm, error) {
 	_, unspentOutputResult, err := OutputQuery(args)  // 获取设备可用输出
 	if err!= nil{
 		return DeviceForm{}, errors.New("bad device : device un define")
+	}
+	if len(unspentOutputResult) < 1{
+		return DeviceForm{}, errors.New("bad output : device un define")
 	}
 	transactionByte, err := GetTransactionById(unspentOutputResult[0].TransactionId)
 	if err!= nil{

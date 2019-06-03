@@ -101,7 +101,7 @@ func TempUserIotForm() UserIotForm {
 		Iot:DeviceForm{
 			DeviceName:"clock0",
 			DeviceInfo:"shareParking",
-			Status:"Return",  // [Rent|Return]
+			Status:"Rent",  // [Rent|Return]
 			Ruler:"5",
 			NickForm:NickForm{
 				NiceName:"admin",
@@ -144,10 +144,10 @@ func TempGetUerBalanceForm() GetUerBalanceForm  {
 		//User NickForm `json:"user"`
 		ClientId:"WeChat",
 		User:NickForm{
-			NiceName:"admin",
-			PrivateKey:ADMIN_PRIVATE_KEY,
+			NiceName:"alice",
+			PrivateKey:alice_private_key,
 			Sn:Sn{
-				PublicKey:ADMIN_PUBLIC_KEY, // not null
+				PublicKey:alice_public_key, // not null
 				Type:"balance",
 				Id:"main",
 

@@ -12,7 +12,7 @@ import (
 func main() {
 	var wg sync.WaitGroup
 	// 初始化 mqtt client
-	Init()
+	Init("clock0")
 	wg.Add(1)
 	// 初始化api
 	err := InitPileApi()
